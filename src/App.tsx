@@ -16,6 +16,11 @@ import { PlaceholderPage } from "@/pages/shared/placeholder-page"
 const LoginPage = lazy(() =>
   import("@/pages/login-page").then((module) => ({ default: module.LoginPage })),
 )
+const ForgotPasswordPage = lazy(() =>
+  import("@/pages/forgot-password-page").then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+)
 const DashboardPage = lazy(() =>
   import("@/pages/dashboard-page").then((module) => ({ default: module.DashboardPage })),
 )
@@ -60,6 +65,7 @@ export default function App() {
             <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
                 <Route element={<ProtectedRoute />}>
                   <Route element={<DashboardLayout />}>

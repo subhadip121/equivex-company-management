@@ -5,12 +5,10 @@ import { CompanyDetailsDialog } from "@/components/company/company-details-dialo
 import { CompanyRowActions } from "@/components/company/company-row-actions"
 import { CreateCompanyDialog } from "@/components/company/create-company-dialog"
 import { EditCompanyDialog } from "@/components/company/edit-company-dialog"
-import {
-  StatusConfirmDialog,
-  type StatusTarget,
-} from "@/components/company/status-confirm-dialog"
+import { StatusConfirmDialog, type StatusTarget } from "@/components/company/status-confirm-dialog"
 import { PageHeader } from "@/components/layout/page-header"
 import { PaginationBar } from "@/components/layout/pagination-bar"
+import { TableActionCell, TableActionHead } from "@/components/layout/table-action"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -29,7 +27,9 @@ import { QueryError } from "@/pages/shared/query-error"
 import type { Company } from "@/types"
 
 const PAGE_SIZE = 10
-const COLUMNS = ["Company", "ISIN", "CIN", "Code", "Contact", "Status", "Action"]
+const COLUMNS = ["Company", "ISIN", "CIN", "Code", "Contact", "Status"]
+/** Data columns plus the pinned action column. */
+const COLUMN_COUNT = COLUMNS.length + 1
 
 export function CompaniesPage() {
   const [page, setPage] = useState(1)
@@ -67,47 +67,46 @@ export function CompaniesPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {COLUMNS.map((column) => (
+                    <TableHead key={column}>{column}</TableHead>
+                  ))}
+                  <TableActionHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.isPending ? (
+                  <SkeletonRows />
+                ) : list.data && list.data.items.length > 0 ? (
+                  list.data.items.map((company) => (
+                    <CompanyRow
+                      key={company.id ?? company.company_isin}
+                      company={company}
+                      onView={() => setViewId(company.id)}
+                      onEdit={() => setEditId(company.id)}
+                      onChangePassword={() =>
+                        setPasswordTarget({ id: company.id, name: company.company_name })
+                      }
+                      onToggleStatus={(isActive) =>
+                        setStatusTarget({
+                          id: company.id,
+                          name: company.company_name,
+                          isActive,
+                        })
+                      }
+                    />
+                  ))
+                ) : (
                   <TableRow>
-                    {COLUMNS.map((column) => (
-                      <TableHead key={column}>{column}</TableHead>
-                    ))}
+                    <TableCell colSpan={COLUMN_COUNT}>
+                      <EmptyState />
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {list.isPending ? (
-                    <SkeletonRows />
-                  ) : list.data && list.data.items.length > 0 ? (
-                    list.data.items.map((company) => (
-                      <CompanyRow
-                        key={company.id ?? company.company_isin}
-                        company={company}
-                        onView={() => setViewId(company.id)}
-                        onEdit={() => setEditId(company.id)}
-                        onChangePassword={() =>
-                          setPasswordTarget({ id: company.id, name: company.company_name })
-                        }
-                        onToggleStatus={(isActive) =>
-                          setStatusTarget({
-                            id: company.id,
-                            name: company.company_name,
-                            isActive,
-                          })
-                        }
-                      />
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={COLUMNS.length}>
-                        <EmptyState />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                )}
+              </TableBody>
+            </Table>
 
             {list.data ? (
               <PaginationBar
@@ -167,7 +166,7 @@ function CompanyRow({
       <TableCell>
         <Badge variant={status.isActive ? "secondary" : "outline"}>{status.label}</Badge>
       </TableCell>
-      <TableCell className="w-10">
+      <TableActionCell>
         <CompanyRowActions
           company={company}
           isActive={status.isActive}
@@ -176,7 +175,7 @@ function CompanyRow({
           onChangePassword={onChangePassword}
           onToggleStatus={() => onToggleStatus(status.isActive)}
         />
-      </TableCell>
+      </TableActionCell>
     </TableRow>
   )
 }
@@ -191,6 +190,9 @@ function SkeletonRows() {
               <Skeleton className="h-4 w-full min-w-16" />
             </TableCell>
           ))}
+          <TableActionCell>
+            <Skeleton className="mx-auto size-8 rounded-md" />
+          </TableActionCell>
         </TableRow>
       ))}
     </>
