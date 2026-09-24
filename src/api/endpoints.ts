@@ -15,6 +15,8 @@ export const endpoints = {
     bulkUploadTemplate: "/superadmin/companySettings/downloadBulkUploadDemoExcel/",
     shareReportUpload:
       "/superadmin/companySettings/uploadNsdlCdslPhysicalShareConsolidatedReport/",
+    shareReportLogs:
+      "/superadmin/companySettings/viewNsdlCdslPhysicalShareConsolidatedReportLogs/",
     companyById: (id: number | string) =>
       `/superadmin/companySettings/${id}/viewCompanyDetailsById/`,
     updateCompany: (id: number | string) => `/superadmin/companySettings/${id}/updateCompany/`,

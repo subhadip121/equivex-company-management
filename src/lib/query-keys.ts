@@ -12,6 +12,8 @@ export const queryKeys = {
   companies: (page: number, pageSize: number) =>
     ["admin", "companies", { page, pageSize }] as const,
   company: (id: number | string) => ["admin", "company", String(id)] as const,
+  reportLogs: (page: number, pageSize: number) =>
+    ["admin", "report-logs", { page, pageSize }] as const,
 
   companyStats: (isin: string) => ["company", isin, "stats"] as const,
   companyActivity: (isin: string) => ["company", isin, "activity"] as const,

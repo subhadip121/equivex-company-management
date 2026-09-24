@@ -1,6 +1,7 @@
 import { endpoints } from "@/api/endpoints"
-import { upload } from "@/api/http"
+import { http, upload } from "@/api/http"
 import { ApiError } from "@/lib/api-error"
+import { normalizePage } from "@/lib/paginate"
 
 export type ReportType = "year_ending" | "AGM"
 
@@ -182,4 +183,30 @@ export async function uploadShareReport({
     }
     throw error
   }
+}
+
+/** A row from the report log, matching the fields the endpoint returns. */
+export interface ReportLog {
+  id: number
+  actual_file_name: string | null
+  upload_file_name: string | null
+  failed_to_upload_file_name: string | null
+  company_id: number | null
+  company_code: string | null
+  company_isin: string | null
+  inserted_date: string | null
+  /** 1 succeeded, 0 failed. */
+  status: number | null
+  reason_of_fail: string | null
+  report_type: string | null
+  uploaded_by: number | null
+  upload_time: string | null
+  branch_id: number | null
+}
+
+export function fetchReportLogs(page: number, pageSize: number) {
+  const query = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
+  return http<unknown>(`${endpoints.admin.shareReportLogs}?${query.toString()}`).then((response) =>
+    normalizePage<ReportLog>(response, page, pageSize),
+  )
 }

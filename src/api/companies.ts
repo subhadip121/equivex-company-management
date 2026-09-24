@@ -1,5 +1,6 @@
 import { endpoints } from "@/api/endpoints"
 import { download, http, upload } from "@/api/http"
+import { normalizePage } from "@/lib/paginate"
 import { ApiError } from "@/lib/api-error"
 import type {
   Company,
@@ -34,116 +35,13 @@ export async function createCompany(payload: CreateCompanyPayload): Promise<{ id
  * paginated envelopes: a DRF `{ count, results }`, a `{ data, total }`
  * wrapper, or a bare array. Narrow it once a live response is available.
  */
-/**
- * Pagination metadata, wherever the backend chose to put it. Django REST
- * Framework's default is { count, next, previous, results }; custom
- * paginators often add total_pages/current_page or nest the lot under
- * `pagination` or `meta`.
- */
-interface PageMeta {
-  count?: number
-  total?: number
-  total_records?: number
-  total_count?: number
-  total_pages?: number
-  num_pages?: number
-  last_page?: number
-  current_page?: number
-  page?: number
-  page_size?: number
-  per_page?: number
-  next?: unknown
-  previous?: unknown
-  results?: Company[]
-  data?: Company[]
-  items?: Company[]
-}
-
-interface CompanyListResponse extends Omit<PageMeta, "data"> {
-  data?: Company[] | (PageMeta & { results?: Company[] })
-  pagination?: PageMeta
-  meta?: PageMeta
-}
-
-function firstNumber(...values: Array<number | undefined>) {
-  return values.find((value) => typeof value === "number" && Number.isFinite(value))
-}
-
-function normalizeList(
-  response: CompanyListResponse | Company[],
-  page: number,
-  pageSize: number,
-): Paginated<Company> {
-  if (Array.isArray(response)) {
-    // No envelope: the whole set arrived, so page it here.
-    const start = (page - 1) * pageSize
-    return {
-      items: response.slice(start, start + pageSize),
-      total: response.length,
-      page,
-      pageSize,
-      totalPages: Math.max(1, Math.ceil(response.length / pageSize)),
-    }
-  }
-
-  const nested = Array.isArray(response.data) ? undefined : response.data
-  // Metadata may sit at the top level or in any of these wrappers.
-  const sources: PageMeta[] = [response, response.pagination, response.meta, nested].filter(
-    Boolean,
-  ) as PageMeta[]
-
-  const items =
-    response.results ??
-    (Array.isArray(response.data) ? response.data : undefined) ??
-    nested?.results ??
-    nested?.data ??
-    response.items ??
-    nested?.items ??
-    []
-
-  const total =
-    firstNumber(
-      ...sources.flatMap((source) => [
-        source.count,
-        source.total,
-        source.total_records,
-        source.total_count,
-      ]),
-    ) ?? items.length
-
-  const effectivePageSize =
-    firstNumber(...sources.flatMap((source) => [source.page_size, source.per_page])) ?? pageSize
-
-  const currentPage =
-    firstNumber(...sources.flatMap((source) => [source.current_page, source.page])) ?? page
-
-  const reportedPages = firstNumber(
-    ...sources.flatMap((source) => [source.total_pages, source.num_pages, source.last_page]),
-  )
-
-  // With no count and no page total, a `next` link is the only proof that
-  // another page exists.
-  const hasNext = sources.some((source) => Boolean(source.next))
-  const derivedPages = Math.max(1, Math.ceil(total / (effectivePageSize || pageSize)))
-
-  return {
-    items,
-    total,
-    page: currentPage,
-    pageSize: effectivePageSize || pageSize,
-    totalPages: reportedPages ?? (hasNext ? Math.max(derivedPages, currentPage + 1) : derivedPages),
-  }
-}
-
 export async function fetchCompanyList(
   page: number,
   pageSize: number,
 ): Promise<Paginated<Company>> {
   const query = new URLSearchParams({ page: String(page), page_size: String(pageSize) })
-  const response = await http<CompanyListResponse | Company[]>(
-    `${endpoints.admin.companyList}?${query.toString()}`,
-  )
-  return normalizeList(response, page, pageSize)
+  const response = await http<unknown>(`${endpoints.admin.companyList}?${query.toString()}`)
+  return normalizePage<Company>(response, page, pageSize)
 }
 
 /** Shared envelope check: a 200 carrying a failure flag is still a failure. */
