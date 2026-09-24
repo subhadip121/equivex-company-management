@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { Provider as ReduxProvider } from "react-redux"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
+import { SessionExpiryWatcher } from "@/components/auth/session-expiry-watcher"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { ProtectedRoute } from "@/components/layout/protected-route"
 import { RouteFallback } from "@/components/layout/route-fallback"
@@ -32,6 +33,14 @@ const AdminProfilePage = lazy(() =>
 const CompaniesPage = lazy(() =>
   import("@/pages/admin/companies-page").then((module) => ({ default: module.CompaniesPage })),
 )
+const AdminChangePasswordPage = lazy(() =>
+  import("@/pages/admin/change-password-page").then((module) => ({
+    default: module.AdminChangePasswordPage,
+  })),
+)
+const AdminReportsPage = lazy(() =>
+  import("@/pages/admin/reports-page").then((module) => ({ default: module.AdminReportsPage })),
+)
 const CompanyProfilePage = lazy(() =>
   import("@/pages/company/company-profile-page").then((module) => ({
     default: module.CompanyProfilePage,
@@ -50,6 +59,22 @@ const ReactQueryDevtools = import.meta.env.DEV
     )
   : null
 
+/** Admins upload reports here; companies will get their own view later. */
+function ReportsRoute() {
+  const { user } = useAuth()
+  return user?.role === "admin" ? (
+    <AdminReportsPage />
+  ) : (
+    <PlaceholderPage title="Reports" description="Periodic and ad-hoc reports." />
+  )
+}
+
+/** Admin only: a company changes its password on its own profile page. */
+function ChangePasswordRoute() {
+  const { user } = useAuth()
+  return user?.role === "admin" ? <AdminChangePasswordPage /> : <Navigate to="/profile" replace />
+}
+
 /** One path, two screens: admins get their account, companies get theirs. */
 function ProfileRoute() {
   const { user } = useAuth()
@@ -60,6 +85,7 @@ export default function App() {
   return (
     <ReduxProvider store={store}>
       <QueryClientProvider client={queryClient}>
+        <SessionExpiryWatcher />
         <TooltipProvider delayDuration={200}>
           <BrowserRouter>
             <Suspense fallback={<RouteFallback />}>
@@ -71,16 +97,8 @@ export default function App() {
                   <Route element={<DashboardLayout />}>
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/companies" element={<CompaniesPage />} />
-                    <Route
-                      path="/users"
-                      element={
-                        <PlaceholderPage
-                          title="Users"
-                          description="Manage portal users and access."
-                        />
-                      }
-                    />
                     <Route path="/profile" element={<ProfileRoute />} />
+                    <Route path="/change-password" element={<ChangePasswordRoute />} />
                     <Route
                       path="/documents"
                       element={
@@ -90,15 +108,7 @@ export default function App() {
                         />
                       }
                     />
-                    <Route
-                      path="/reports"
-                      element={
-                        <PlaceholderPage
-                          title="Reports"
-                          description="Periodic and ad-hoc reports."
-                        />
-                      }
-                    />
+                    <Route path="/reports" element={<ReportsRoute />} />
                     <Route
                       path="/compliance"
                       element={

@@ -150,13 +150,33 @@ export async function fetchAdminProfile(): Promise<AdminProfile> {
   return unwrap(await http<AdminProfile | { data: AdminProfile }>(endpoints.admin.profile))
 }
 
-export async function updateAdminProfile(profile: AdminProfile): Promise<AdminProfile> {
-  return unwrap(
-    await http<AdminProfile | { data: AdminProfile }>(endpoints.admin.updateProfile, {
-      method: "POST",
-      body: JSON.stringify(profile),
-    }),
+/** True only for a body that actually carries profile fields. */
+function isAdminProfile(value: unknown): value is AdminProfile {
+  if (!value || typeof value !== "object") return false
+  return "first_name" in value || "email" in value
+}
+
+/**
+ * Returns the saved record when the backend echoes it, and null when it
+ * answers with something like { status, message } instead. Callers must
+ * not assume a profile comes back.
+ */
+export async function updateAdminProfile(profile: AdminProfile): Promise<AdminProfile | null> {
+  const response = await http<AdminProfile | { data: AdminProfile } | Record<string, unknown>>(
+    endpoints.admin.updateProfile,
+    { method: "POST", body: JSON.stringify(profile) },
   )
+  const body = unwrap(response as AdminProfile | { data: AdminProfile })
+  return isAdminProfile(body) ? body : null
+}
+
+/** Payload matches the company endpoint: old_password and new_password. */
+export async function changeAdminPassword(payload: ChangePasswordPayload): Promise<void> {
+  const response = await http<LoginResponse>(endpoints.admin.changePassword, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+  assertSuccess(response, "Could not change the password.")
 }
 
 export async function fetchCompanyProfile(): Promise<CompanyProfile> {

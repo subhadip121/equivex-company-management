@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Building2, RefreshCw } from "lucide-react"
+import { BulkUploadDialog } from "@/components/company/bulk-upload-dialog"
 import { ChangeCompanyPasswordDialog } from "@/components/company/change-password-dialog"
 import { CompanyDetailsDialog } from "@/components/company/company-details-dialog"
 import { CompanyRowActions } from "@/components/company/company-row-actions"
@@ -55,6 +56,7 @@ export function CompaniesPage() {
             >
               <RefreshCw className={list.isFetching ? "size-4 animate-spin" : "size-4"} />
             </Button>
+            <BulkUploadDialog />
             <CreateCompanyDialog />
           </>
         }

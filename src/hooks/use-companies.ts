@@ -1,5 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
+  bulkUploadCompanies,
+  downloadBulkUploadTemplate,
   changeCompanyPassword,
   changeCompanyStatus,
   createCompany,
@@ -74,4 +76,21 @@ export function useChangeCompanyPassword() {
     mutationFn: ({ id, newPassword }: { id: number | string; newPassword: string }) =>
       changeCompanyPassword(id, newPassword),
   })
+}
+
+export function useBulkUploadCompanies() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ file, onProgress }: { file: File; onProgress?: (percent: number) => void }) =>
+      bulkUploadCompanies(file, onProgress),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: COMPANY_LIST_KEY })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.adminStats })
+    },
+  })
+}
+
+export function useDownloadBulkUploadTemplate() {
+  return useMutation({ mutationFn: downloadBulkUploadTemplate })
 }

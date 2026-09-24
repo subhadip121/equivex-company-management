@@ -20,7 +20,7 @@ export function AdminProfilePage() {
     <>
       <PageHeader title="My profile" description="Your administrator account details." />
 
-      <Card className="max-w-2xl">
+      <Card>
         <CardHeader>
           <CardTitle>Account details</CardTitle>
           <CardDescription>These details appear across the admin console.</CardDescription>

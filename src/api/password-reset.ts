@@ -1,41 +1,58 @@
-import { delay } from "@/api/http"
+import { endpoints } from "@/api/endpoints"
+import { delay, http } from "@/api/http"
 import { ApiError } from "@/lib/api-error"
 import type { UserRole } from "@/types"
 
 /**
- * MOCKED. The password reset endpoints do not exist yet, so these only
- * simulate latency and outcomes to let the screens be exercised. When the
- * API lands, add the paths to endpoints.ts and replace each body with an
- * `http` call; the signatures are what the screens depend on.
+ * Admin reset is wired to the real API and keyed on the account's email
+ * address. The company endpoints do not exist yet, so that path is still
+ * simulated; replace the mocked branches when they land.
  */
 
 export interface ResetRequest {
   accountType: UserRole
-  /** ISIN for a company, username for the admin. */
+  /** Email address for an admin, ISIN for a company. */
   identifier: string
 }
 
-/** Code 000000 is rejected so the error state can be seen. */
+/** Code 000000 is rejected in the mocked company path so the error shows. */
 const MOCK_REJECTED_CODE = "000000"
 
-export async function requestPasswordReset(request: ResetRequest): Promise<void> {
+export async function requestPasswordReset({
+  accountType,
+  identifier,
+}: ResetRequest): Promise<void> {
+  if (accountType === "admin") {
+    await http<{ message?: string }>(endpoints.admin.forgotPasswordRequest, {
+      method: "POST",
+      body: JSON.stringify({ email: identifier }),
+    })
+    return
+  }
+
   await delay(null, 700)
-  void request
 }
 
-export async function verifyResetCode(
-  request: ResetRequest & { code: string },
-): Promise<{ resetToken: string }> {
-  await delay(null, 600)
-  if (request.code === MOCK_REJECTED_CODE) {
+/**
+ * The backend verifies the code and sets the new password in one call, so
+ * there is no separate verify step to check the code on its own.
+ */
+export async function resetPasswordWithOtp({
+  accountType,
+  identifier,
+  otp,
+  newPassword,
+}: ResetRequest & { otp: string; newPassword: string }): Promise<void> {
+  if (accountType === "admin") {
+    await http<{ message?: string }>(endpoints.admin.verifyOtpAndResetPassword, {
+      method: "POST",
+      body: JSON.stringify({ email: identifier, otp, new_password: newPassword }),
+    })
+    return
+  }
+
+  await delay(null, 700)
+  if (otp === MOCK_REJECTED_CODE) {
     throw new ApiError("That code is incorrect or has expired.", 400)
   }
-  return { resetToken: "mock-reset-token" }
-}
-
-export async function resetPassword(
-  request: ResetRequest & { resetToken: string; newPassword: string },
-): Promise<void> {
-  await delay(null, 700)
-  void request
 }

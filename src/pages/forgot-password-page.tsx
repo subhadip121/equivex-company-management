@@ -18,22 +18,20 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
-import {
-  useRequestPasswordReset,
-  useResetPassword,
-  useVerifyResetCode,
-} from "@/hooks/use-password-reset"
+import { useRequestPasswordReset, useResetPasswordWithOtp } from "@/hooks/use-password-reset"
 import { isValidIsin, normalizeIsin } from "@/lib/isin"
 import { cn } from "@/lib/utils"
+import { validateEmail } from "@/lib/validation"
 import type { UserRole } from "@/types"
 
-type Step = "request" | "verify" | "reset" | "done"
+type Step = "request" | "reset" | "done"
 
 const CODE_LENGTH = 6
 const RESEND_COOLDOWN_SECONDS = 30
 const MIN_PASSWORD_LENGTH = 8
 
-const STEP_ORDER: Step[] = ["request", "verify", "reset"]
+/** The backend verifies the code and sets the password in one call. */
+const STEP_ORDER: Step[] = ["request", "reset"]
 
 export function ForgotPasswordPage() {
   const { user } = useAuth()
@@ -44,7 +42,6 @@ export function ForgotPasswordPage() {
     searchParams.get("type") === "admin" ? "admin" : "company",
   )
   const [identifier, setIdentifier] = useState("")
-  const [resetToken, setResetToken] = useState("")
 
   if (user) return <Navigate to="/dashboard" replace />
 
@@ -61,19 +58,7 @@ export function ForgotPasswordPage() {
           }}
           identifier={identifier}
           onIdentifierChange={setIdentifier}
-          onSent={() => setStep("verify")}
-        />
-      ) : null}
-
-      {step === "verify" ? (
-        <VerifyStep
-          accountType={accountType}
-          identifier={identifier}
-          onVerified={(token) => {
-            setResetToken(token)
-            setStep("reset")
-          }}
-          onChangeAccount={() => setStep("request")}
+          onSent={() => setStep("reset")}
         />
       ) : null}
 
@@ -81,8 +66,8 @@ export function ForgotPasswordPage() {
         <ResetStep
           accountType={accountType}
           identifier={identifier}
-          resetToken={resetToken}
           onDone={() => setStep("done")}
+          onChangeAccount={() => setStep("request")}
         />
       ) : null}
 
@@ -170,9 +155,12 @@ function RequestStep({
       setError("Enter a valid 12-character ISIN number, for example INE467B01029.")
       return
     }
-    if (!isCompany && !identifier.trim()) {
-      setError("Enter your username.")
-      return
+    if (!isCompany) {
+      const problem = validateEmail(identifier)
+      if (problem) {
+        setError(problem)
+        return
+      }
     }
 
     requestReset.mutate(
@@ -185,7 +173,11 @@ function RequestStep({
     <>
       <StepHeading
         title="Forgot password"
-        description="We'll send a verification code to the email address registered with your account."
+        description={
+          isCompany
+            ? "We'll send a verification code to the email address registered with your account."
+            : "Enter your account's email address and we'll send you a verification code."
+        }
       />
 
       <Tabs
@@ -211,7 +203,7 @@ function RequestStep({
         <ErrorAlert message={error} />
 
         <div className="space-y-2">
-          <Label htmlFor="identifier">{isCompany ? "ISIN number" : "Username"}</Label>
+          <Label htmlFor="identifier">{isCompany ? "ISIN number" : "Email address"}</Label>
           {isCompany ? (
             <Input
               id="identifier"
@@ -227,11 +219,12 @@ function RequestStep({
           ) : (
             <Input
               id="identifier"
-              name="username"
+              name="email"
+              type="email"
               value={identifier}
               onChange={(event) => onIdentifierChange(event.target.value)}
-              placeholder="Username"
-              autoComplete="username"
+              placeholder="Email address"
+              autoComplete="email"
               autoFocus
             />
           )}
@@ -246,20 +239,23 @@ function RequestStep({
   )
 }
 
-function VerifyStep({
+function ResetStep({
   accountType,
   identifier,
-  onVerified,
+  onDone,
   onChangeAccount,
 }: {
   accountType: UserRole
   identifier: string
-  onVerified: (resetToken: string) => void
+  onDone: () => void
   onChangeAccount: () => void
 }) {
-  const verifyCode = useVerifyResetCode()
+  const resetPassword = useResetPasswordWithOtp()
   const resendCode = useRequestPasswordReset()
+
   const [code, setCode] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS)
@@ -270,24 +266,35 @@ function VerifyStep({
     return () => window.clearTimeout(timer)
   }, [cooldown])
 
-  function submit(value: string) {
+  const rules = [
+    {
+      label: `At least ${MIN_PASSWORD_LENGTH} characters`,
+      met: newPassword.length >= MIN_PASSWORD_LENGTH,
+    },
+    { label: "Passwords match", met: newPassword.length > 0 && newPassword === confirmPassword },
+  ]
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault()
     setError(null)
     setNotice(null)
 
-    if (value.length !== CODE_LENGTH) {
+    if (code.length !== CODE_LENGTH) {
       setError(`Enter the ${CODE_LENGTH}-digit code from the email.`)
       return
     }
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      setError(`The password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setError("The passwords do not match.")
+      return
+    }
 
-    verifyCode.mutate(
-      { accountType, identifier, code: value },
-      {
-        onSuccess: ({ resetToken }) => onVerified(resetToken),
-        onError: (mutationError) => {
-          setError(mutationError.message)
-          setCode("")
-        },
-      },
+    resetPassword.mutate(
+      { accountType, identifier, otp: code, newPassword },
+      { onSuccess: onDone, onError: (mutationError) => setError(mutationError.message) },
     )
   }
 
@@ -313,7 +320,7 @@ function VerifyStep({
         title="Check your email"
         description={
           <>
-            Enter the {CODE_LENGTH}-digit code sent to the email registered for{" "}
+            Enter the {CODE_LENGTH}-digit code sent to{" "}
             <span
               className={cn(
                 "font-medium text-foreground",
@@ -321,20 +328,13 @@ function VerifyStep({
               )}
             >
               {identifier}
-            </span>
-            .
+            </span>{" "}
+            and choose a new password.
           </>
         }
       />
 
-      <form
-        className="space-y-5"
-        onSubmit={(event) => {
-          event.preventDefault()
-          submit(code)
-        }}
-        noValidate
-      >
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         <ErrorAlert message={error} />
         {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
 
@@ -345,12 +345,10 @@ function VerifyStep({
             maxLength={CODE_LENGTH}
             value={code}
             onChange={(value) => setCode(value.replace(/\D/g, ""))}
-            // Submits as soon as the last digit lands, pasted or typed.
-            onComplete={submit}
             inputMode="numeric"
             pattern="^[0-9]*$"
             autoComplete="one-time-code"
-            disabled={verifyCode.isPending}
+            disabled={resetPassword.isPending}
             autoFocus
             containerClassName="justify-center sm:justify-start"
           >
@@ -367,93 +365,6 @@ function VerifyStep({
           </InputOTP>
         </div>
 
-        <Button type="submit" size="lg" className="w-full" disabled={verifyCode.isPending}>
-          {verifyCode.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-          {verifyCode.isPending ? "Verifying…" : "Verify code"}
-        </Button>
-
-        <div className="flex flex-col items-center justify-between gap-2 text-sm sm:flex-row">
-          <button
-            type="button"
-            onClick={onChangeAccount}
-            className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Use a different account
-          </button>
-
-          {cooldown > 0 ? (
-            <span className="text-muted-foreground" aria-live="polite">
-              Resend code in {cooldown}s
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={handleResend}
-              disabled={resendCode.isPending}
-              className="font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50"
-            >
-              {resendCode.isPending ? "Sending…" : "Resend code"}
-            </button>
-          )}
-        </div>
-      </form>
-    </>
-  )
-}
-
-function ResetStep({
-  accountType,
-  identifier,
-  resetToken,
-  onDone,
-}: {
-  accountType: UserRole
-  identifier: string
-  resetToken: string
-  onDone: () => void
-}) {
-  const resetPassword = useResetPassword()
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-
-  const rules = [
-    {
-      label: `At least ${MIN_PASSWORD_LENGTH} characters`,
-      met: newPassword.length >= MIN_PASSWORD_LENGTH,
-    },
-    { label: "Passwords match", met: newPassword.length > 0 && newPassword === confirmPassword },
-  ]
-
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault()
-    setError(null)
-
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setError(`The password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      setError("The passwords do not match.")
-      return
-    }
-
-    resetPassword.mutate(
-      { accountType, identifier, resetToken, newPassword },
-      { onSuccess: onDone, onError: (mutationError) => setError(mutationError.message) },
-    )
-  }
-
-  return (
-    <>
-      <StepHeading
-        title="Set a new password"
-        description="Choose a password you have not used for this account before."
-      />
-
-      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
-        <ErrorAlert message={error} />
-
         <div className="space-y-2">
           <Label htmlFor="new-password">New password</Label>
           <PasswordInput
@@ -463,7 +374,6 @@ function ResetStep({
             onChange={(event) => setNewPassword(event.target.value)}
             placeholder="New password"
             autoComplete="new-password"
-            autoFocus
           />
         </div>
 
@@ -506,6 +416,31 @@ function ResetStep({
           {resetPassword.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
           {resetPassword.isPending ? "Updating password…" : "Update password"}
         </Button>
+
+        <div className="flex flex-col items-center justify-between gap-2 text-sm sm:flex-row">
+          <button
+            type="button"
+            onClick={onChangeAccount}
+            className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Use a different account
+          </button>
+
+          {cooldown > 0 ? (
+            <span className="text-muted-foreground" aria-live="polite">
+              Resend code in {cooldown}s
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendCode.isPending}
+              className="font-medium text-primary underline-offset-4 hover:underline disabled:opacity-50"
+            >
+              {resendCode.isPending ? "Sending…" : "Resend code"}
+            </button>
+          )}
+        </div>
       </form>
     </>
   )

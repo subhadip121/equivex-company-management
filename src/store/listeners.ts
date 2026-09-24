@@ -1,7 +1,7 @@
 import { createListenerMiddleware, isAnyOf } from "@reduxjs/toolkit"
 import { setAuthToken } from "@/api/http"
 import { queryClient } from "@/lib/query-client"
-import { AUTH_STORAGE_KEY, sessionEnded, sessionStarted } from "@/store/auth-slice"
+import { AUTH_STORAGE_KEY, profileUpdated, sessionEnded, sessionStarted } from "@/store/auth-slice"
 import { THEME_STORAGE_KEY, themeSet, themeToggled } from "@/store/ui-slice"
 import type { RootState } from "@/store"
 
@@ -16,6 +16,20 @@ listenerMiddleware.startListening({
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(action.payload))
     } catch {
       // storage unavailable; session stays in memory only
+    }
+  },
+})
+
+/** An edited name or email must survive a reload, like the session itself. */
+listenerMiddleware.startListening({
+  actionCreator: profileUpdated,
+  effect: (_action, api) => {
+    const { user, token } = (api.getState() as RootState).auth
+    if (!user) return
+    try {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ user, token }))
+    } catch {
+      // storage unavailable; the change stays in memory only
     }
   },
 })

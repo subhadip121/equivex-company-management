@@ -5,9 +5,16 @@ export const endpoints = {
     logout: "/superadmin/loginView/logout/",
     profile: "/superadmin/loginView/viewProfileDtls/",
     updateProfile: "/superadmin/loginView/updateProfileDtls/",
+    changePassword: "/superadmin/loginView/changePassword/",
+    forgotPasswordRequest: "/superadmin/loginView/forgetPasswordRequest/",
+    verifyOtpAndResetPassword: "/superadmin/loginView/verifyOtpAndResetPassword/",
 
     createCompany: "/superadmin/companySettings/createCompany/",
     companyList: "/superadmin/companySettings/viewCompanyList/",
+    bulkCompanyUpload: "/superadmin/companySettings/bulkCompanyUpload/",
+    bulkUploadTemplate: "/superadmin/companySettings/downloadBulkUploadDemoExcel/",
+    shareReportUpload:
+      "/superadmin/companySettings/uploadNsdlCdslPhysicalShareConsolidatedReport/",
     companyById: (id: number | string) =>
       `/superadmin/companySettings/${id}/viewCompanyDetailsById/`,
     updateCompany: (id: number | string) => `/superadmin/companySettings/${id}/updateCompany/`,

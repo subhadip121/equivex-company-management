@@ -3,10 +3,10 @@ import {
   FileText,
   FolderClosed,
   LayoutDashboard,
+  KeyRound,
   Settings,
   ShieldCheck,
   UserRound,
-  Users,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { UserRole } from "@/types"
@@ -31,16 +31,14 @@ const ADMIN_NAV: NavGroup[] = [
     label: "Manage",
     items: [
       { title: "Companies", url: "/companies", icon: Building2 },
-      { title: "Users", url: "/users", icon: Users },
-      { title: "Documents", url: "/documents", icon: FolderClosed },
-      { title: "Reports", url: "/reports", icon: FileText },
+      { title: "Upload report", url: "/reports", icon: FileText },
     ],
   },
   {
     label: "System",
     items: [
       { title: "My profile", url: "/profile", icon: UserRound },
-      { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Update password", url: "/change-password", icon: KeyRound },
     ],
   },
 ]

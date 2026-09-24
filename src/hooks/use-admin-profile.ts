@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { fetchAdminProfile, updateAdminProfile } from "@/api/auth"
+import { changeAdminPassword, fetchAdminProfile, updateAdminProfile } from "@/api/auth"
 import { queryKeys } from "@/lib/query-keys"
 import { profileUpdated } from "@/store/auth-slice"
 import { useAppDispatch } from "@/store/hooks"
@@ -13,22 +13,38 @@ export function useAdminProfile(enabled: boolean) {
   })
 }
 
+function displayName(profile: AdminProfile) {
+  return (
+    [profile.first_name, profile.middle_name, profile.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "Admin"
+  )
+}
+
 export function useUpdateAdminProfile() {
   const queryClient = useQueryClient()
   const dispatch = useAppDispatch()
 
   return useMutation({
     mutationFn: updateAdminProfile,
-    onSuccess: (profile: AdminProfile) => {
-      // Write the server's answer straight into the cache, no refetch.
-      queryClient.setQueryData(queryKeys.adminProfile, profile)
-      // Keep the header and menu in step with the saved name.
-      const name =
-        [profile.first_name, profile.middle_name, profile.last_name]
-          .filter(Boolean)
-          .join(" ")
-          .trim() || "Admin"
-      dispatch(profileUpdated({ name, email: profile.email }))
+    onSuccess: async (saved, submitted) => {
+      // The endpoint may answer { status, message } rather than the saved
+      // record, so fall back to the values we just sent.
+      const next = saved ?? submitted
+
+      queryClient.setQueryData<AdminProfile>(queryKeys.adminProfile, (current) => ({
+        ...(current ?? submitted),
+        ...next,
+      }))
+      dispatch(profileUpdated({ name: displayName(next), email: next.email }))
+
+      // Then confirm against the server, in case it normalised anything.
+      await queryClient.invalidateQueries({ queryKey: queryKeys.adminProfile })
     },
   })
+}
+
+export function useChangeAdminPassword() {
+  return useMutation({ mutationFn: changeAdminPassword })
 }
