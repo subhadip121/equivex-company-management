@@ -69,6 +69,16 @@ function ReportsRoute() {
   )
 }
 
+/** Company only: the admin console has no settings screen. */
+function SettingsRoute() {
+  const { user } = useAuth()
+  return user?.role === "company" ? (
+    <PlaceholderPage title="Settings" description="Account and portal settings." />
+  ) : (
+    <Navigate to="/dashboard" replace />
+  )
+}
+
 /** Admin only: a company changes its password on its own profile page. */
 function ChangePasswordRoute() {
   const { user } = useAuth()
@@ -118,15 +128,7 @@ export default function App() {
                         />
                       }
                     />
-                    <Route
-                      path="/settings"
-                      element={
-                        <PlaceholderPage
-                          title="Settings"
-                          description="Account and portal settings."
-                        />
-                      }
-                    />
+                    <Route path="/settings" element={<SettingsRoute />} />
                   </Route>
                 </Route>
 

@@ -55,9 +55,9 @@ export function UserMenu() {
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => navigate(user.role === "admin" ? "/settings" : "/profile")}>
+        <DropdownMenuItem onSelect={() => navigate("/profile")}>
           <UserRound className="size-4" />
-          {user.role === "admin" ? "Account settings" : "Company profile"}
+          {user.role === "admin" ? "My profile" : "Company profile"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={logout}>
