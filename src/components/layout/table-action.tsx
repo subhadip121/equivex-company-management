@@ -24,7 +24,16 @@ export function TableActionHead({
   ...props
 }: React.ComponentProps<typeof TableHead>) {
   return (
-    <TableHead className={cn(STICKY_ACTION, "text-center", className)} {...props}>
+    <TableHead
+      className={cn(
+        STICKY_ACTION,
+        // Opaque match for the header row's bg-muted/60 over the card.
+        "bg-[color-mix(in_oklab,var(--card),var(--muted)_60%)]",
+        "text-center",
+        className,
+      )}
+      {...props}
+    >
       {children}
     </TableHead>
   )

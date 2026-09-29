@@ -31,6 +31,16 @@ export interface CompanyProfile {
   address?: string
   registration_number?: string
   status?: string | boolean | number | null
+  /** Spellings vary, so the common ones are all accepted. */
+  share_capital?: string | number | null
+  shareCapital?: string | number | null
+  total_share_capital?: string | number | null
+  face_value?: string | number | null
+  faceValue?: string | number | null
+  last_login?: string | null
+  lastLogin?: string | null
+  last_login_time?: string | null
+  last_login_date?: string | null
 }
 
 export interface ChangePasswordPayload {
@@ -66,6 +76,9 @@ export interface CreateCompanyPayload {
   company_isin: string
   company_cin: string
   company_code: string
+  /** Sent as numeric strings, which DRF accepts for number fields. */
+  share_capital: string
+  face_value: string
   email: string
   phone_no: string
   fax: string
@@ -80,6 +93,8 @@ export interface Company {
   company_isin: string
   company_cin: string
   company_code: string
+  share_capital?: string | number | null
+  face_value?: string | number | null
   email: string
   phone_no: string
   fax: string

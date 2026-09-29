@@ -1,6 +1,7 @@
 import { LogOut } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import { LogoMark } from "@/components/brand/logo"
+import { CompanyDetailsPanel } from "@/components/layout/company-details-panel"
 import { Button } from "@/components/ui/button"
 import {
   Sidebar,
@@ -56,7 +57,11 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location.pathname === item.url}
+                      isActive={
+                        location.pathname === item.url ||
+                        // Keep the section marked while a nested page is open.
+                        location.pathname.startsWith(`${item.url}/`)
+                      }
                       tooltip={item.title}
                     >
                       <NavLink
@@ -75,16 +80,23 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-          onClick={logout}
-          disabled={isLoggingOut}
-        >
-          <LogOut className="size-4 shrink-0" />
-          <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
-        </Button>
+      {/* Extra padding below sign out, so it is not flush with the edge. */}
+      <SidebarFooter className="pb-4">
+        {user.role === "company" ? <CompanyDetailsPanel /> : null}
+
+        {/* The rule lives on a wrapper: on the button it would eat into
+            the fixed control height. */}
+        <div className="border-t border-sidebar-border pt-2">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            onClick={logout}
+            disabled={isLoggingOut}
+          >
+            <LogOut className="size-4 shrink-0" />
+            <span className="group-data-[collapsible=icon]:hidden">Sign out</span>
+          </Button>
+        </div>
       </SidebarFooter>
 
       <SidebarRail />

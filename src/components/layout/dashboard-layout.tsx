@@ -13,11 +13,14 @@ function usePageTitle() {
 
   if (!user) return "Equivex"
 
-  for (const group of getNavigation(user.role)) {
-    const match = group.items.find((item) => item.url === pathname)
-    if (match) return match.title
-  }
-  return "Equivex"
+  const items = getNavigation(user.role).flatMap((group) => group.items)
+
+  const exact = items.find((item) => item.url === pathname)
+  if (exact) return exact.title
+
+  // A nested page such as /reports/share-holding keeps its section's title.
+  const section = items.find((item) => pathname.startsWith(`${item.url}/`))
+  return section?.title ?? "Equivex"
 }
 
 export function DashboardLayout() {

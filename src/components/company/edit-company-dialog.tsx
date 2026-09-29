@@ -18,6 +18,9 @@ function toFormValues(company: Company) {
     company_isin: company.company_isin ?? "",
     company_cin: company.company_cin ?? "",
     company_code: company.company_code ?? "",
+    // Numbers come back as numbers or strings; the form holds text.
+    share_capital: company.share_capital == null ? "" : String(company.share_capital),
+    face_value: company.face_value == null ? "" : String(company.face_value),
     email: company.email ?? "",
     phone_no: company.phone_no ?? "",
     fax: company.fax ?? "",

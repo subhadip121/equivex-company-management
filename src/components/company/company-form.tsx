@@ -8,12 +8,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { isValidIsin, normalizeIsin } from "@/lib/isin"
 import {
   normalizeCin,
+  normalizeDecimal,
   normalizeDigits,
   required,
   validateCin,
+  validateDecimal,
   validateEmail,
   validatePhone,
   validateWebsite,
+  validateWholeNumber,
 } from "@/lib/validation"
 import type { CreateCompanyPayload } from "@/types"
 
@@ -22,6 +25,8 @@ const EMPTY_COMPANY: CreateCompanyPayload = {
   company_isin: "",
   company_cin: "",
   company_code: "",
+  share_capital: "",
+  face_value: "",
   email: "",
   phone_no: "",
   fax: "",
@@ -50,6 +55,12 @@ function validate(form: CreateCompanyPayload, withCode: boolean): Errors {
     const code = required(form.company_code, "Company code")
     if (code) errors.company_code = code
   }
+
+  const shareCapital = validateWholeNumber(form.share_capital, "Share capital")
+  if (shareCapital) errors.share_capital = shareCapital
+
+  const faceValue = validateDecimal(form.face_value, "Face value")
+  if (faceValue) errors.face_value = faceValue
 
   const email = validateEmail(form.email)
   if (email) errors.email = email
@@ -154,6 +165,26 @@ export function CompanyForm({
       </div>
 
       <Field
+        id="share_capital"
+        label="Share capital (shares)"
+        inputMode="numeric"
+        value={form.share_capital}
+        onChange={(value) => setField("share_capital", normalizeDigits(value, 15))}
+        error={errors.share_capital}
+        className="tabular-nums"
+      />
+
+      <Field
+        id="face_value"
+        label="Face value"
+        inputMode="decimal"
+        value={form.face_value}
+        onChange={(value) => setField("face_value", normalizeDecimal(value))}
+        error={errors.face_value}
+        className="tabular-nums"
+      />
+
+      <Field
         id="email"
         label="Email"
         type="email"
@@ -227,6 +258,7 @@ function Field({
   className,
   maxLength,
   optional,
+  inputMode,
 }: {
   id: string
   label: string
@@ -237,6 +269,7 @@ function Field({
   className?: string
   maxLength?: number
   optional?: boolean
+  inputMode?: "text" | "numeric" | "decimal" | "tel" | "email"
 }) {
   return (
     <div className="space-y-2">
@@ -248,6 +281,7 @@ function Field({
         id={id}
         name={id}
         type={type}
+        inputMode={inputMode}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={label}

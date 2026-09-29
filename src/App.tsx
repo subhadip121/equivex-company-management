@@ -11,7 +11,6 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { useAuth } from "@/hooks/use-auth"
 import { queryClient } from "@/lib/query-client"
 import { store } from "@/store"
-import { PlaceholderPage } from "@/pages/shared/placeholder-page"
 
 /** Route-level code splitting: each screen ships as its own chunk. */
 const LoginPage = lazy(() =>
@@ -41,6 +40,21 @@ const AdminChangePasswordPage = lazy(() =>
 const AdminReportsPage = lazy(() =>
   import("@/pages/admin/reports-page").then((module) => ({ default: module.AdminReportsPage })),
 )
+const CompanyReportsHubPage = lazy(() =>
+  import("@/pages/company/reports-hub-page").then((module) => ({
+    default: module.CompanyReportsHubPage,
+  })),
+)
+const CompanyReportDetailPage = lazy(() =>
+  import("@/pages/company/report-detail-page").then((module) => ({
+    default: module.CompanyReportDetailPage,
+  })),
+)
+const CompanyChangePasswordPage = lazy(() =>
+  import("@/pages/company/change-password-page").then((module) => ({
+    default: module.CompanyChangePasswordPage,
+  })),
+)
 const CompanyProfilePage = lazy(() =>
   import("@/pages/company/company-profile-page").then((module) => ({
     default: module.CompanyProfilePage,
@@ -59,30 +73,22 @@ const ReactQueryDevtools = import.meta.env.DEV
     )
   : null
 
-/** Admins upload reports here; companies will get their own view later. */
+/** Admins upload reports here; companies browse the reports available to them. */
 function ReportsRoute() {
   const { user } = useAuth()
-  return user?.role === "admin" ? (
-    <AdminReportsPage />
-  ) : (
-    <PlaceholderPage title="Reports" description="Periodic and ad-hoc reports." />
-  )
+  return user?.role === "admin" ? <AdminReportsPage /> : <CompanyReportsHubPage />
 }
 
-/** Company only: the admin console has no settings screen. */
-function SettingsRoute() {
+/** Company only: an individual report opened from the hub. */
+function ReportDetailRoute() {
   const { user } = useAuth()
-  return user?.role === "company" ? (
-    <PlaceholderPage title="Settings" description="Account and portal settings." />
-  ) : (
-    <Navigate to="/dashboard" replace />
-  )
+  return user?.role === "company" ? <CompanyReportDetailPage /> : <Navigate to="/reports" replace />
 }
 
-/** Admin only: a company changes its password on its own profile page. */
+/** Both roles change their own password, each against its own endpoint. */
 function ChangePasswordRoute() {
   const { user } = useAuth()
-  return user?.role === "admin" ? <AdminChangePasswordPage /> : <Navigate to="/profile" replace />
+  return user?.role === "admin" ? <AdminChangePasswordPage /> : <CompanyChangePasswordPage />
 }
 
 /** One path, two screens: admins get their account, companies get theirs. */
@@ -109,26 +115,8 @@ export default function App() {
                     <Route path="/companies" element={<CompaniesPage />} />
                     <Route path="/profile" element={<ProfileRoute />} />
                     <Route path="/change-password" element={<ChangePasswordRoute />} />
-                    <Route
-                      path="/documents"
-                      element={
-                        <PlaceholderPage
-                          title="Documents"
-                          description="Filed and shared documents."
-                        />
-                      }
-                    />
                     <Route path="/reports" element={<ReportsRoute />} />
-                    <Route
-                      path="/compliance"
-                      element={
-                        <PlaceholderPage
-                          title="Compliance"
-                          description="Obligations, deadlines and filing status."
-                        />
-                      }
-                    />
-                    <Route path="/settings" element={<SettingsRoute />} />
+                    <Route path="/reports/:reportSlug" element={<ReportDetailRoute />} />
                   </Route>
                 </Route>
 

@@ -15,6 +15,11 @@ export const queryKeys = {
   reportLogs: (page: number, pageSize: number) =>
     ["admin", "report-logs", { page, pageSize }] as const,
 
+  reportCategories: ["company", "report-categories"] as const,
+  reportDates: ["company", "report-dates"] as const,
+  consolidatedShareholding: (date: string, categories: string[]) =>
+    ["company", "consolidated-shareholding", { date, categories }] as const,
+
   companyStats: (isin: string) => ["company", isin, "stats"] as const,
   companyActivity: (isin: string) => ["company", isin, "activity"] as const,
   companyDeadline: (isin: string) => ["company", isin, "deadline"] as const,

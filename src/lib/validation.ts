@@ -39,6 +39,31 @@ export function validateWebsite(value: string) {
     : "Enter a valid website, for example www.example.com"
 }
 
+/** Digits only, for whole-number fields such as a share count. */
+export function validateWholeNumber(value: string, label: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return `${label} is required.`
+  if (!/^\d+$/.test(trimmed)) return `${label} must be a whole number.`
+  if (Number(trimmed) <= 0) return `${label} must be greater than zero.`
+  return null
+}
+
+/** Allows one decimal point, for values such as a face value of 2.50. */
+export function validateDecimal(value: string, label: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return `${label} is required.`
+  if (!/^\d+(\.\d{1,4})?$/.test(trimmed)) return `Enter ${label.toLowerCase()} as a number.`
+  if (Number(trimmed) <= 0) return `${label} must be greater than zero.`
+  return null
+}
+
+/** Keeps a decimal entry to digits and a single point. */
+export function normalizeDecimal(value: string) {
+  const cleaned = value.replace(/[^\d.]/g, "")
+  const [whole, ...rest] = cleaned.split(".")
+  return rest.length === 0 ? whole : `${whole}.${rest.join("").slice(0, 4)}`
+}
+
 export function normalizeCin(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 21)
 }

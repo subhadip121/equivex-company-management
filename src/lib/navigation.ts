@@ -1,13 +1,4 @@
-import {
-  Building2,
-  FileText,
-  FolderClosed,
-  LayoutDashboard,
-  KeyRound,
-  Settings,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react"
+import { Building2, FileText, LayoutDashboard, KeyRound, UserRound } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import type { UserRole } from "@/types"
 
@@ -52,14 +43,12 @@ const COMPANY_NAV: NavGroup[] = [
     label: "Company",
     items: [
       { title: "Company profile", url: "/profile", icon: Building2 },
-      { title: "Documents", url: "/documents", icon: FolderClosed },
       { title: "Reports", url: "/reports", icon: FileText },
-      { title: "Compliance", url: "/compliance", icon: ShieldCheck },
     ],
   },
   {
     label: "System",
-    items: [{ title: "Settings", url: "/settings", icon: Settings }],
+    items: [{ title: "Update password", url: "/change-password", icon: KeyRound }],
   },
 ]
 

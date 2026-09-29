@@ -195,15 +195,28 @@ function filenameFrom(header: string | null) {
  * used because the credential lives in memory, not in a cookie, so the file
  * is fetched with the auth header and handed to the browser as a blob.
  */
-export async function download(path: string, fallbackFilename: string): Promise<void> {
+export async function download(
+  path: string,
+  fallbackFilename: string,
+  options: { method?: string; body?: unknown } = {},
+): Promise<void> {
+  const { method = "GET", body } = options
+
   const headers = new Headers()
   if (authToken) {
     headers.set("Authorization", `Bearer ${authToken}`)
   }
+  if (body !== undefined) {
+    headers.set("Content-Type", "application/json")
+  }
 
   let response: Response
   try {
-    response = await fetch(`${BASE_URL}${path}`, { headers })
+    response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
   } catch {
     throw new ApiError("Could not reach the server. Check your connection.", 0)
   }

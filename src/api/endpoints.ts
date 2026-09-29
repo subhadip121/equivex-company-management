@@ -30,5 +30,11 @@ export const endpoints = {
     logout: "/company/loginView/logout/",
     profile: "/company/loginView/viewProfileDtls/",
     changePassword: "/company/loginView/changeCompanyPassword/",
+
+    reportCategories: "/company/reportView/getAllCategory/",
+    reportDates: "/company/reportView/getAllInsertDate/",
+    consolidatedShareholding: "/company/reportView/ConsolidatedShareHoldingReport/",
+    consolidatedShareholdingExcel: "/company/reportView/ConsolidatedShareHoldingReportexcel/",
+    consolidatedShareholdingPdf: "/company/reportView/ConsolidatedShareHoldingReportpdf/",
   },
 } as const
