@@ -19,6 +19,11 @@ export const queryKeys = {
   reportDates: ["company", "report-dates"] as const,
   consolidatedShareholding: (date: string, categories: string[]) =>
     ["company", "consolidated-shareholding", { date, categories }] as const,
+  capitalAnalysis: (date: string) => ["company", "capital-analysis", { date }] as const,
+  topShareholders: (date: string, range: number, page: number, pageSize: number) =>
+    ["company", "top-shareholders", { date, range, page, pageSize }] as const,
+  onePercentShareholders: (date: string, page: number, pageSize: number) =>
+    ["company", "one-percent-shareholders", { date, page, pageSize }] as const,
 
   companyStats: (isin: string) => ["company", isin, "stats"] as const,
   companyActivity: (isin: string) => ["company", isin, "activity"] as const,

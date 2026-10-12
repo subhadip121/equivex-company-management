@@ -14,10 +14,16 @@ import {
 } from "@/components/ui/select"
 import { REPORT_GROUPS, findReport } from "@/lib/company-reports"
 import { ConsolidatedShareholdingPatternReport } from "@/pages/company/reports/consolidated-shareholding-pattern"
+import { OnePercentShareholdersReport } from "@/pages/company/reports/one-percent-shareholders"
+import { SummaryOfShareholdingReport } from "@/pages/company/reports/summary-of-shareholding"
+import { TopShareholdersReport } from "@/pages/company/reports/top-shareholders"
 
 /** Reports that are built. Anything absent shows the pending notice. */
 const REPORT_SCREENS: Record<string, () => React.ReactElement> = {
   "consolidated-shareholding-pattern": ConsolidatedShareholdingPatternReport,
+  "summary-of-shareholding": SummaryOfShareholdingReport,
+  "top-shareholders": TopShareholdersReport,
+  "shareholders-above-one-percent": OnePercentShareholdersReport,
 }
 
 export function CompanyReportDetailPage() {

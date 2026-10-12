@@ -94,7 +94,10 @@ export interface Company {
   company_cin: string
   company_code: string
   share_capital?: string | number | null
+  shareCapital?: string | number | null
+  total_share_capital?: string | number | null
   face_value?: string | number | null
+  faceValue?: string | number | null
   email: string
   phone_no: string
   fax: string

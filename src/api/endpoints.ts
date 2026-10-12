@@ -36,5 +36,19 @@ export const endpoints = {
     consolidatedShareholding: "/company/reportView/ConsolidatedShareHoldingReport/",
     consolidatedShareholdingExcel: "/company/reportView/ConsolidatedShareHoldingReportexcel/",
     consolidatedShareholdingPdf: "/company/reportView/ConsolidatedShareHoldingReportpdf/",
+    capitalAnalysis: "/company/reportView/capitalAnalysisReport/",
+    capitalAnalysisExcel: "/company/reportView/capitalAnalysisExcel/",
+    capitalAnalysisPdf: "/company/reportView/capitalAnalysisPdf/",
+
+    topShareholders: "/company/reportView/topShareHoldersReport/",
+    topShareholdersExcel: "/company/reportView/topShareHoldersExcel/",
+    topShareholdersPdf: "/company/reportView/topShareHoldersPdf/",
+
+    onePercentShareholders:
+      "/company/reportView/shareholdersHoldingOnePercentAndAboveSharesReport/",
+    onePercentShareholdersExcel:
+      "/company/reportView/shareholdersHoldingOnePercentAndAboveSharesExcel/",
+    onePercentShareholdersPdf:
+      "/company/reportView/shareholdersHoldingOnePercentAndAboveSharesPdf/",
   },
 } as const

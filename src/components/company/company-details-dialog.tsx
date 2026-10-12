@@ -8,6 +8,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCompany } from "@/hooks/use-companies"
+import { formatNumber, toNumber } from "@/lib/format"
 import { toStatus } from "@/lib/status"
 import { QueryError } from "@/pages/shared/query-error"
 import type { Company } from "@/types"
@@ -41,12 +42,28 @@ export function CompanyDetailsDialog({
   )
 }
 
+function formatFieldValue(value: unknown): string | undefined {
+  if (value === null || value === undefined || value === "") return undefined
+  const num = toNumber(value)
+  return num !== null ? formatNumber(num) : String(value)
+}
+
 function Details({ company }: { company: Company }) {
   const status = toStatus(company.status)
   const rows: Array<{ label: string; value?: string; mono?: boolean }> = [
     { label: "ISIN", value: company.company_isin, mono: true },
     { label: "CIN", value: company.company_cin, mono: true },
     { label: "Company code", value: company.company_code },
+    {
+      label: "Share capital",
+      value: formatFieldValue(
+        company.share_capital ?? company.shareCapital ?? company.total_share_capital,
+      ),
+    },
+    {
+      label: "Face value",
+      value: formatFieldValue(company.face_value ?? company.faceValue),
+    },
     { label: "Email", value: company.email },
     { label: "Phone", value: company.phone_no },
     { label: "Fax", value: company.fax },
