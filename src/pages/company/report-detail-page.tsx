@@ -13,17 +13,25 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { REPORT_GROUPS, findReport } from "@/lib/company-reports"
+import { ConsolidatedChangeInShareholdingReport } from "@/pages/company/reports/consolidated-change-in-shareholding"
 import { ConsolidatedShareholdingPatternReport } from "@/pages/company/reports/consolidated-shareholding-pattern"
+import { DistributionByNotionalValueReport } from "@/pages/company/reports/distribution-by-notional-value"
+import { DistributionByShareHoldingReport } from "@/pages/company/reports/distribution-by-share-holding"
 import { OnePercentShareholdersReport } from "@/pages/company/reports/one-percent-shareholders"
 import { SummaryOfShareholdingReport } from "@/pages/company/reports/summary-of-shareholding"
+import { TopHundredComparisonReport } from "@/pages/company/reports/top-hundred-comparison"
 import { TopShareholdersReport } from "@/pages/company/reports/top-shareholders"
 
 /** Reports that are built. Anything absent shows the pending notice. */
 const REPORT_SCREENS: Record<string, () => React.ReactElement> = {
   "consolidated-shareholding-pattern": ConsolidatedShareholdingPatternReport,
+  "consolidated-change-in-shareholding-pattern": ConsolidatedChangeInShareholdingReport,
   "summary-of-shareholding": SummaryOfShareholdingReport,
   "top-shareholders": TopShareholdersReport,
   "shareholders-above-one-percent": OnePercentShareholdersReport,
+  "distribution-by-share-holding": DistributionByShareHoldingReport,
+  "distribution-by-notional-value": DistributionByNotionalValueReport,
+  "top-100-comparison-two-weeks": TopHundredComparisonReport,
 }
 
 export function CompanyReportDetailPage() {

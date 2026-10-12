@@ -36,6 +36,23 @@ export const endpoints = {
     consolidatedShareholding: "/company/reportView/ConsolidatedShareHoldingReport/",
     consolidatedShareholdingExcel: "/company/reportView/ConsolidatedShareHoldingReportexcel/",
     consolidatedShareholdingPdf: "/company/reportView/ConsolidatedShareHoldingReportpdf/",
+    consolidatedChange: "/company/reportView/consolidatedChangeInShareHoldingReport/",
+    consolidatedChangeExcel: "/company/reportView/consolidatedChangeInShareHoldingExcel/",
+    consolidatedChangePdf: "/company/reportView/consolidatedChangeInShareHoldingPdf/",
+
+    distribution: "/company/reportView/distributionOfShareholdersReport/",
+    distributionExcel: "/company/reportView/distributionOfShareholdersExcel/",
+    distributionPdf: "/company/reportView/distributionOfShareholdersPdf/",
+
+    // Spelled "National" on the wire, though the report is Notional Value.
+    notionalValue: "/company/reportView/distributionByNationalValueReport/",
+    notionalValueExcel: "/company/reportView/distributionByNationalValueExcel/",
+    notionalValuePdf: "/company/reportView/distributionByNationalValuePdf/",
+
+    topHundredComparison: "/company/reportView/topHundredShareholdersReport/",
+    topHundredComparisonExcel: "/company/reportView/topHundredShareholdersExcel/",
+    topHundredComparisonPdf: "/company/reportView/topHundredShareholdersPdf/",
+
     capitalAnalysis: "/company/reportView/capitalAnalysisReport/",
     capitalAnalysisExcel: "/company/reportView/capitalAnalysisExcel/",
     capitalAnalysisPdf: "/company/reportView/capitalAnalysisPdf/",

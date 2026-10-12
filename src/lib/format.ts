@@ -9,6 +9,17 @@ export function formatPercent(value: number) {
   return `${value.toFixed(2)}%`
 }
 
+/**
+ * 2026-07-24 or 2026-07-24T00:00:00 becomes 24-07-2026. Parsed by hand
+ * rather than through Date, which would shift the day across time zones.
+ */
+export function formatDayMonthYear(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim())
+  if (!match) return value
+  const [, year, month, day] = match
+  return `${day}-${month}-${year}`
+}
+
 /** company_name -> Company name, lastLogin -> Last login */
 export function humaniseKey(key: string) {
   const spaced = key

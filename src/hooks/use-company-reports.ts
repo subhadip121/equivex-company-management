@@ -2,20 +2,35 @@ import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 import {
   downloadCapitalAnalysisExcel,
   downloadCapitalAnalysisPdf,
+  downloadConsolidatedChangeExcel,
+  downloadConsolidatedChangePdf,
   downloadConsolidatedShareholdingExcel,
+  downloadDistributionExcel,
+  downloadDistributionPdf,
+  downloadNotionalValueExcel,
+  downloadNotionalValuePdf,
+  downloadTopHundredExcel,
+  downloadTopHundredPdf,
   downloadConsolidatedShareholdingPdf,
   downloadOnePercentShareholdersExcel,
   downloadOnePercentShareholdersPdf,
   downloadTopShareholdersExcel,
   downloadTopShareholdersPdf,
   fetchCapitalAnalysis,
+  fetchConsolidatedChange,
   fetchConsolidatedShareholding,
+  fetchDistribution,
+  fetchNotionalValue,
+  fetchTopHundredComparison,
   fetchOnePercentShareholders,
   fetchReportCategories,
   fetchReportDates,
   fetchTopShareholders,
   type CapitalAnalysisRequest,
+  type ConsolidatedChangeRequest,
   type ConsolidatedReportRequest,
+  type DistributionRequest,
+  type TopHundredRequest,
   type OnePercentShareholdersRequest,
   type TopShareholdersRequest,
 } from "@/api/company-reports"
@@ -58,6 +73,72 @@ export function useConsolidatedShareholding(request: ConsolidatedReportRequest |
 export function useDownloadConsolidatedShareholding() {
   const excel = useMutation({ mutationFn: downloadConsolidatedShareholdingExcel })
   const pdf = useMutation({ mutationFn: downloadConsolidatedShareholdingPdf })
+  return { excel, pdf }
+}
+
+export function useConsolidatedChange(request: ConsolidatedChangeRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.consolidatedChange(
+      request?.date1 ?? "",
+      request?.date2 ?? "",
+      request?.categories ?? [],
+      request?.depositoryType ?? "ALL",
+      request?.aboveValue ?? "",
+    ),
+    queryFn: () => fetchConsolidatedChange(request!),
+    enabled: request !== null,
+  })
+}
+
+export function useDownloadConsolidatedChange() {
+  const excel = useMutation({ mutationFn: downloadConsolidatedChangeExcel })
+  const pdf = useMutation({ mutationFn: downloadConsolidatedChangePdf })
+  return { excel, pdf }
+}
+
+export function useDistribution(request: DistributionRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.distribution(request?.date ?? "", request?.ranges ?? []),
+    queryFn: () => fetchDistribution(request!),
+    enabled: request !== null,
+  })
+}
+
+export function useDownloadDistribution() {
+  const excel = useMutation({ mutationFn: downloadDistributionExcel })
+  const pdf = useMutation({ mutationFn: downloadDistributionPdf })
+  return { excel, pdf }
+}
+
+export function useNotionalValue(request: DistributionRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.notionalValue(request?.date ?? "", request?.ranges ?? []),
+    queryFn: () => fetchNotionalValue(request!),
+    enabled: request !== null,
+  })
+}
+
+export function useDownloadNotionalValue() {
+  const excel = useMutation({ mutationFn: downloadNotionalValueExcel })
+  const pdf = useMutation({ mutationFn: downloadNotionalValuePdf })
+  return { excel, pdf }
+}
+
+export function useTopHundredComparison(request: TopHundredRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.topHundredComparison(
+      request?.date1 ?? "",
+      request?.date2 ?? "",
+      request?.categories ?? [],
+    ),
+    queryFn: () => fetchTopHundredComparison(request!),
+    enabled: request !== null,
+  })
+}
+
+export function useDownloadTopHundredComparison() {
+  const excel = useMutation({ mutationFn: downloadTopHundredExcel })
+  const pdf = useMutation({ mutationFn: downloadTopHundredPdf })
   return { excel, pdf }
 }
 

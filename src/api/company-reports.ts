@@ -164,8 +164,12 @@ export async function fetchReportDates(): Promise<FilterOption[]> {
   return options.map((option) => ({ ...option, label: toDisplayDate(option.label) }))
 }
 
+/**
+ * This endpoint spells the date `uplod_date`. Other report endpoints use
+ * `upload_date`, so do not align them.
+ */
 function toPayload({ companyId, date, categories }: ConsolidatedReportRequest) {
-  return { company_id: companyId, upload_date: toYmdDate(date), category: categories }
+  return { company_id: companyId, uplod_date: toYmdDate(date), category: categories }
 }
 
 /** Percentages arrive as strings, and any field may be missing. */
@@ -223,6 +227,485 @@ export function downloadConsolidatedShareholdingPdf(request: ConsolidatedReportR
     endpoints.company.consolidatedShareholdingPdf,
     `consolidated-shareholding-${request.date}.pdf`,
     { method: "POST", body: toPayload(request) },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Consolidated Change in Shareholding Pattern
+// ---------------------------------------------------------------------------
+
+export type DepositoryType = "NSDL" | "CDSL" | "ALL"
+
+export interface ConsolidatedChangeRequest {
+  companyId: number
+  /** The later of the two dates being compared. */
+  date1: string
+  /** The earlier date, compared against. */
+  date2: string
+  categories: string[]
+  depositoryType: DepositoryType
+  /** Optional holding threshold; omitted from the payload when blank. */
+  aboveValue?: string
+}
+
+/** One side of the comparison, as sent under as_on_from / as_on_to. */
+export interface ChangePeriodFigures {
+  cases: number
+  holding: number
+  percentage: number
+}
+
+export interface ConsolidatedChangeRow {
+  /** Category code, named `status` on the wire. */
+  code: string
+  name: string
+  from: ChangePeriodFigures
+  to: ChangePeriodFigures
+  differenceCases: number
+  differenceHolding: number
+}
+
+export interface ConsolidatedChangeTotals {
+  fromCases: number
+  fromHolding: number
+  fromPercentage: number
+  toCases: number
+  toHolding: number
+  toPercentage: number
+  differenceCases: number
+  differenceHolding: number
+}
+
+export interface ConsolidatedChangeReport {
+  /** The first date of the comparison, sent back as from_date. */
+  fromDate: string
+  toDate: string
+  shareCapital: number
+  rows: ConsolidatedChangeRow[]
+  totals: ConsolidatedChangeTotals
+}
+
+interface ChangeFiguresRaw {
+  cases?: unknown
+  holding?: unknown
+  percentage_to_equity?: unknown
+}
+
+interface ConsolidatedChangeRaw {
+  from_date?: string
+  to_date?: string
+  share_capital?: unknown
+  data?: Array<{
+    status?: string
+    cat_name?: string
+    as_on_from?: ChangeFiguresRaw
+    as_on_to?: ChangeFiguresRaw
+    difference?: { cases?: unknown; holding?: unknown }
+  }>
+  totals?: {
+    cases1?: unknown
+    holding1?: unknown
+    percentage1?: unknown
+    cases2?: unknown
+    holding2?: unknown
+    percentage2?: unknown
+    cases_diff?: unknown
+    holding_diff?: unknown
+  }
+}
+
+function toFigures(raw: ChangeFiguresRaw | undefined): ChangePeriodFigures {
+  return {
+    cases: toNumber(raw?.cases),
+    holding: toNumber(raw?.holding),
+    percentage: toNumber(raw?.percentage_to_equity),
+  }
+}
+
+function toConsolidatedChangePayload(request: ConsolidatedChangeRequest) {
+  const payload: Record<string, unknown> = {
+    company_id: request.companyId,
+    category: request.categories,
+    upload_date_1: toYmdDate(request.date1),
+    upload_date_2: toYmdDate(request.date2),
+    depository_type: request.depositoryType,
+  }
+
+  // Sent only when set; the endpoint treats it as optional.
+  const threshold = request.aboveValue?.trim()
+  if (threshold) payload.above_value = threshold
+
+  return payload
+}
+
+export async function fetchConsolidatedChange(
+  request: ConsolidatedChangeRequest,
+): Promise<ConsolidatedChangeReport> {
+  const response = await http<ConsolidatedChangeRaw>(endpoints.company.consolidatedChange, {
+    method: "POST",
+    body: JSON.stringify(toConsolidatedChangePayload(request)),
+  })
+
+  const totals = response.totals ?? {}
+
+  return {
+    fromDate: String(response.from_date ?? request.date1),
+    toDate: String(response.to_date ?? request.date2),
+    shareCapital: toNumber(response.share_capital),
+    rows: (response.data ?? []).map((row) => ({
+      code: String(row.status ?? ""),
+      name: String(row.cat_name ?? row.status ?? ""),
+      from: toFigures(row.as_on_from),
+      to: toFigures(row.as_on_to),
+      differenceCases: toNumber(row.difference?.cases),
+      differenceHolding: toNumber(row.difference?.holding),
+    })),
+    totals: {
+      fromCases: toNumber(totals.cases1),
+      fromHolding: toNumber(totals.holding1),
+      fromPercentage: toNumber(totals.percentage1),
+      toCases: toNumber(totals.cases2),
+      toHolding: toNumber(totals.holding2),
+      toPercentage: toNumber(totals.percentage2),
+      differenceCases: toNumber(totals.cases_diff),
+      differenceHolding: toNumber(totals.holding_diff),
+    },
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadConsolidatedChangeExcel(request: ConsolidatedChangeRequest) {
+  return download(
+    endpoints.company.consolidatedChangeExcel,
+    `consolidated-change-in-shareholding-${request.date1}.csv`,
+    { method: "POST", body: toConsolidatedChangePayload(request) },
+  )
+}
+
+export function downloadConsolidatedChangePdf(request: ConsolidatedChangeRequest) {
+  return download(
+    endpoints.company.consolidatedChangePdf,
+    `consolidated-change-in-shareholding-${request.date1}.pdf`,
+    { method: "POST", body: toConsolidatedChangePayload(request) },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Distribution Schedule by Share Holding
+// ---------------------------------------------------------------------------
+
+/** One band of the schedule, inclusive at both ends. */
+export interface HoldingRange {
+  from: number
+  to: number
+}
+
+export interface DistributionRequest {
+  companyId: number
+  date: string
+  ranges: HoldingRange[]
+}
+
+export interface DistributionRow {
+  range: string
+  holders: number
+  shares: number
+  holderPercentage: number
+  sharePercentage: number
+}
+
+export interface DistributionReport {
+  currentDate: string
+  totalHolders: number
+  totalShares: number
+  totalHolderPercentage: number
+  totalSharePercentage: number
+  rows: DistributionRow[]
+}
+
+interface DistributionRaw {
+  current_date?: string
+  total_holders?: unknown
+  total_shares?: unknown
+  total_holder_percentage?: unknown
+  total_share_percentage?: unknown
+  distribution?: Array<{
+    share_holding_range?: string
+    tot_holders?: unknown
+    tot_shares?: unknown
+    holder_percentage?: unknown
+    share_percentage?: unknown
+  }>
+}
+
+function toDistributionPayload(request: DistributionRequest) {
+  return {
+    // The endpoint takes a page, though it returns the whole schedule.
+    page: 1,
+    company_id: request.companyId,
+    current_date: toYmdDate(request.date),
+    ranges: request.ranges.map((range) => ({ from: range.from, to: range.to })),
+  }
+}
+
+export async function fetchDistribution(
+  request: DistributionRequest,
+): Promise<DistributionReport> {
+  const response = await http<DistributionRaw>(endpoints.company.distribution, {
+    method: "POST",
+    body: JSON.stringify(toDistributionPayload(request)),
+  })
+
+  return {
+    currentDate: String(response.current_date ?? request.date),
+    totalHolders: toNumber(response.total_holders),
+    totalShares: toNumber(response.total_shares),
+    totalHolderPercentage: toNumber(response.total_holder_percentage),
+    totalSharePercentage: toNumber(response.total_share_percentage),
+    rows: (response.distribution ?? []).map((row) => ({
+      range: String(row.share_holding_range ?? ""),
+      holders: toNumber(row.tot_holders),
+      shares: toNumber(row.tot_shares),
+      holderPercentage: toNumber(row.holder_percentage),
+      sharePercentage: toNumber(row.share_percentage),
+    })),
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadDistributionExcel(request: DistributionRequest) {
+  return download(
+    endpoints.company.distributionExcel,
+    `distribution-schedule-${request.date}.csv`,
+    { method: "POST", body: toDistributionPayload(request) },
+  )
+}
+
+export function downloadDistributionPdf(request: DistributionRequest) {
+  return download(
+    endpoints.company.distributionPdf,
+    `distribution-schedule-${request.date}.pdf`,
+    { method: "POST", body: toDistributionPayload(request) },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Distribution Schedule by Notional Value
+// ---------------------------------------------------------------------------
+
+export interface NotionalValueRow {
+  range: string
+  holders: number
+  amount: number
+  holderPercentage: number
+  amountPercentage: number
+}
+
+export interface NotionalValueReport {
+  currentDate: string
+  faceValue: number
+  totalHolders: number
+  totalAmount: number
+  totalHolderPercentage: number
+  totalAmountPercentage: number
+  rows: NotionalValueRow[]
+}
+
+interface NotionalValueRaw {
+  current_date?: string
+  face_value?: unknown
+  total_holders?: unknown
+  total_amount?: unknown
+  total_holder_percentage?: unknown
+  amount_percentage?: unknown
+  distribution?: Array<{
+    notional_value_range?: string
+    tot_holders?: unknown
+    amount?: unknown
+    holder_percentage?: unknown
+    amount_percentage?: unknown
+  }>
+}
+
+/** Same request shape as the share holding schedule. */
+export async function fetchNotionalValue(
+  request: DistributionRequest,
+): Promise<NotionalValueReport> {
+  const response = await http<NotionalValueRaw>(endpoints.company.notionalValue, {
+    method: "POST",
+    body: JSON.stringify(toDistributionPayload(request)),
+  })
+
+  return {
+    currentDate: String(response.current_date ?? request.date),
+    faceValue: toNumber(response.face_value),
+    totalHolders: toNumber(response.total_holders),
+    totalAmount: toNumber(response.total_amount),
+    totalHolderPercentage: toNumber(response.total_holder_percentage),
+    totalAmountPercentage: toNumber(response.amount_percentage),
+    rows: (response.distribution ?? []).map((row) => ({
+      range: String(row.notional_value_range ?? ""),
+      holders: toNumber(row.tot_holders),
+      amount: toNumber(row.amount),
+      holderPercentage: toNumber(row.holder_percentage),
+      amountPercentage: toNumber(row.amount_percentage),
+    })),
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadNotionalValueExcel(request: DistributionRequest) {
+  return download(
+    endpoints.company.notionalValueExcel,
+    `notional-value-distribution-${request.date}.csv`,
+    { method: "POST", body: toDistributionPayload(request) },
+  )
+}
+
+export function downloadNotionalValuePdf(request: DistributionRequest) {
+  return download(
+    endpoints.company.notionalValuePdf,
+    `notional-value-distribution-${request.date}.pdf`,
+    { method: "POST", body: toDistributionPayload(request) },
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Top 100 Shareholder comparison for 2 weeks
+// ---------------------------------------------------------------------------
+
+/** Selectable alongside the category codes, as its own grouping. */
+export const PROMOTER_GROUP_CATEGORY = "promoter_group"
+
+export interface TopHundredRequest {
+  companyId: number
+  /** The first date of the comparison. */
+  date1: string
+  date2: string
+  categories: string[]
+}
+
+export interface TopHundredRow {
+  dpId: string
+  clientId: string
+  name: string
+  pan: string
+  categoryCode: string
+  categoryName: string
+  holding1: number
+  equity1: number
+  buying: number
+  selling: number
+  holding2: number
+  equity2: number
+}
+
+export interface TopHundredTotals {
+  holding1: number
+  equity1: number
+  buying: number
+  selling: number
+  holding2: number
+  equity2: number
+}
+
+export interface TopHundredReport {
+  shareCapital: number
+  count: number
+  rows: TopHundredRow[]
+  totals: TopHundredTotals
+}
+
+interface TopHundredRaw {
+  share_capital?: unknown
+  count?: unknown
+  data?: Array<{
+    dp_id?: string | null
+    client_id?: string | null
+    name?: string | null
+    pan?: string | null
+    cat_name?: string | null
+    category?: string | null
+    shareholding_1?: unknown
+    to_equity_1?: unknown
+    buying?: unknown
+    selling?: unknown
+    shareholding_2?: unknown
+    to_equity_2?: unknown
+  }>
+  totals?: {
+    shareholding_1?: unknown
+    to_equity_1?: unknown
+    buying?: unknown
+    selling?: unknown
+    shareholding_2?: unknown
+    to_equity_2?: unknown
+  }
+}
+
+function toTopHundredPayload(request: TopHundredRequest) {
+  return {
+    page: 1,
+    company_id: request.companyId,
+    category: request.categories,
+    date_1: toYmdDate(request.date1),
+    date_2: toYmdDate(request.date2),
+  }
+}
+
+export async function fetchTopHundredComparison(
+  request: TopHundredRequest,
+): Promise<TopHundredReport> {
+  const response = await http<TopHundredRaw>(endpoints.company.topHundredComparison, {
+    method: "POST",
+    body: JSON.stringify(toTopHundredPayload(request)),
+  })
+
+  const totals = response.totals ?? {}
+
+  return {
+    shareCapital: toNumber(response.share_capital),
+    count: toNumber(response.count),
+    rows: (response.data ?? []).map((row) => ({
+      // dp_id comes back null for physical holdings.
+      dpId: row.dp_id ?? "",
+      clientId: row.client_id ?? "",
+      name: row.name ?? "",
+      pan: row.pan ?? "",
+      categoryCode: row.category ?? "",
+      categoryName: row.cat_name ?? "",
+      holding1: toNumber(row.shareholding_1),
+      equity1: toNumber(row.to_equity_1),
+      buying: toNumber(row.buying),
+      selling: toNumber(row.selling),
+      holding2: toNumber(row.shareholding_2),
+      equity2: toNumber(row.to_equity_2),
+    })),
+    totals: {
+      holding1: toNumber(totals.shareholding_1),
+      equity1: toNumber(totals.to_equity_1),
+      buying: toNumber(totals.buying),
+      selling: toNumber(totals.selling),
+      holding2: toNumber(totals.shareholding_2),
+      equity2: toNumber(totals.to_equity_2),
+    },
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadTopHundredExcel(request: TopHundredRequest) {
+  return download(
+    endpoints.company.topHundredComparisonExcel,
+    `top-100-shareholder-comparison-${request.date1}.csv`,
+    { method: "POST", body: toTopHundredPayload(request) },
+  )
+}
+
+export function downloadTopHundredPdf(request: TopHundredRequest) {
+  return download(
+    endpoints.company.topHundredComparisonPdf,
+    `top-100-shareholder-comparison-${request.date1}.pdf`,
+    { method: "POST", body: toTopHundredPayload(request) },
   )
 }
 

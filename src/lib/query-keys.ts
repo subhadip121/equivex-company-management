@@ -19,6 +19,24 @@ export const queryKeys = {
   reportDates: ["company", "report-dates"] as const,
   consolidatedShareholding: (date: string, categories: string[]) =>
     ["company", "consolidated-shareholding", { date, categories }] as const,
+  consolidatedChange: (
+    date1: string,
+    date2: string,
+    categories: string[],
+    depositoryType: string,
+    aboveValue: string,
+  ) =>
+    [
+      "company",
+      "consolidated-change",
+      { date1, date2, categories, depositoryType, aboveValue },
+    ] as const,
+  distribution: (date: string, ranges: Array<{ from: number; to: number }>) =>
+    ["company", "distribution", { date, ranges }] as const,
+  notionalValue: (date: string, ranges: Array<{ from: number; to: number }>) =>
+    ["company", "notional-value", { date, ranges }] as const,
+  topHundredComparison: (date1: string, date2: string, categories: string[]) =>
+    ["company", "top-hundred-comparison", { date1, date2, categories }] as const,
   capitalAnalysis: (date: string) => ["company", "capital-analysis", { date }] as const,
   topShareholders: (date: string, range: number, page: number, pageSize: number) =>
     ["company", "top-shareholders", { date, range, page, pageSize }] as const,
