@@ -8,6 +8,12 @@ import {
   downloadDistributionExcel,
   downloadDistributionPdf,
   downloadNotionalValueExcel,
+  downloadLockInSharesExcel,
+  downloadPledgeSharesExcel,
+  downloadPledgeSharesPdf,
+  downloadShareHoldingExcel,
+  downloadShareHoldingPdf,
+  downloadLockInSharesPdf,
   downloadNotionalValuePdf,
   downloadTopHundredExcel,
   downloadTopHundredPdf,
@@ -20,6 +26,9 @@ import {
   fetchConsolidatedChange,
   fetchConsolidatedShareholding,
   fetchDistribution,
+  fetchLockInShares,
+  fetchPledgeShares,
+  fetchShareHolding,
   fetchNotionalValue,
   fetchTopHundredComparison,
   fetchOnePercentShareholders,
@@ -30,6 +39,8 @@ import {
   type ConsolidatedChangeRequest,
   type ConsolidatedReportRequest,
   type DistributionRequest,
+  type LockInRequest,
+  type ShareHoldingRequest,
   type TopHundredRequest,
   type OnePercentShareholdersRequest,
   type TopShareholdersRequest,
@@ -139,6 +150,56 @@ export function useTopHundredComparison(request: TopHundredRequest | null) {
 export function useDownloadTopHundredComparison() {
   const excel = useMutation({ mutationFn: downloadTopHundredExcel })
   const pdf = useMutation({ mutationFn: downloadTopHundredPdf })
+  return { excel, pdf }
+}
+
+export function useLockInShares(request: LockInRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.lockInShares(request?.date ?? "", request?.categories ?? []),
+    queryFn: () => fetchLockInShares(request!),
+    enabled: request !== null,
+  })
+}
+
+export function useDownloadLockInShares() {
+  const excel = useMutation({ mutationFn: downloadLockInSharesExcel })
+  const pdf = useMutation({ mutationFn: downloadLockInSharesPdf })
+  return { excel, pdf }
+}
+
+export function useShareHolding(request: ShareHoldingRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.shareHolding(
+      request?.dates ?? [],
+      request?.categories ?? [],
+      request?.range ?? 0,
+      request?.keys ?? [],
+      request?.page ?? 1,
+      request?.pageSize ?? 0,
+    ),
+    queryFn: () => fetchShareHolding(request!),
+    enabled: request !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useDownloadShareHolding() {
+  const excel = useMutation({ mutationFn: downloadShareHoldingExcel })
+  const pdf = useMutation({ mutationFn: downloadShareHoldingPdf })
+  return { excel, pdf }
+}
+
+export function usePledgeShares(request: LockInRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.pledgeShares(request?.date ?? "", request?.categories ?? []),
+    queryFn: () => fetchPledgeShares(request!),
+    enabled: request !== null,
+  })
+}
+
+export function useDownloadPledgeShares() {
+  const excel = useMutation({ mutationFn: downloadPledgeSharesExcel })
+  const pdf = useMutation({ mutationFn: downloadPledgeSharesPdf })
   return { excel, pdf }
 }
 

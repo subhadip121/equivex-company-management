@@ -53,6 +53,18 @@ export const endpoints = {
     topHundredComparisonExcel: "/company/reportView/topHundredShareholdersExcel/",
     topHundredComparisonPdf: "/company/reportView/topHundredShareholdersPdf/",
 
+    shareHolding: "/company/reportView/shareHoldingReport/",
+    shareHoldingExcel: "/company/reportView/shareHoldingExcelExport/",
+    shareHoldingPdf: "/company/reportView/shareHoldingPdf/",
+
+    pledgeShares: "/company/reportView/pledgeSharesSummaryReport/",
+    pledgeSharesExcel: "/company/reportView/pledgeSharesSummaryExcel/",
+    pledgeSharesPdf: "/company/reportView/pledgeSharesSummaryPdf/",
+
+    lockInShares: "/company/reportView/lockInSharesSummaryReport/",
+    lockInSharesExcel: "/company/reportView/lockInSharesSummaryExcel/",
+    lockInSharesPdf: "/company/reportView/lockInSharesSummaryPdf/",
+
     capitalAnalysis: "/company/reportView/capitalAnalysisReport/",
     capitalAnalysisExcel: "/company/reportView/capitalAnalysisExcel/",
     capitalAnalysisPdf: "/company/reportView/capitalAnalysisPdf/",

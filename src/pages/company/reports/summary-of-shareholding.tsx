@@ -144,7 +144,7 @@ export function SummaryOfShareholdingReport() {
         {!applied ? (
           <EmptyState
             title="Choose a date"
-            body="Select a date and click Get results to view the summary of shareholding report."
+            body="Select a date and click Get results to view the capital analysis report."
           />
         ) : report.isPending ? (
           <ReportTableSkeleton columns={5} />

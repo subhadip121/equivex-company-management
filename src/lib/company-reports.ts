@@ -42,8 +42,8 @@ export const REPORT_GROUPS: ReportGroup[] = [
       },
       {
         slug: "summary-of-shareholding",
-        title: "Summary of Shareholding",
-        description: "Headline totals for the current position.",
+        title: "Capital Analysis",
+        description: "Holdings and equity broken down by category.",
         icon: FileBarChart,
       },
       {

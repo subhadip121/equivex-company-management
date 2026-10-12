@@ -37,6 +37,19 @@ export const queryKeys = {
     ["company", "notional-value", { date, ranges }] as const,
   topHundredComparison: (date1: string, date2: string, categories: string[]) =>
     ["company", "top-hundred-comparison", { date1, date2, categories }] as const,
+  shareHolding: (
+    dates: string[],
+    categories: string[],
+    range: number,
+    keys: string[],
+    page: number,
+    pageSize: number,
+  ) =>
+    ["company", "share-holding", { dates, categories, range, keys, page, pageSize }] as const,
+  pledgeShares: (date: string, categories: string[]) =>
+    ["company", "pledge-shares", { date, categories }] as const,
+  lockInShares: (date: string, categories: string[]) =>
+    ["company", "lock-in-shares", { date, categories }] as const,
   capitalAnalysis: (date: string) => ["company", "capital-analysis", { date }] as const,
   topShareholders: (date: string, range: number, page: number, pageSize: number) =>
     ["company", "top-shareholders", { date, range, page, pageSize }] as const,

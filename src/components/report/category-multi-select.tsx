@@ -21,12 +21,15 @@ export function CategoryMultiSelect({
   onChange,
   isLoading,
   disabled,
+  /** What the options are called, used in the summary and search box. */
+  noun = "categories",
 }: {
   groups: CategoryGroup[]
   selected: string[]
   onChange: (values: string[]) => void
   isLoading?: boolean
   disabled?: boolean
+  noun?: string
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -80,7 +83,7 @@ export function CategoryMultiSelect({
           disabled={disabled || allOptions.length === 0}
           className="w-full justify-between font-normal"
         >
-          <span className="truncate">{summarise(selected, allOptions.length)}</span>
+          <span className="truncate">{summarise(selected, allOptions.length, noun)}</span>
           <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -92,7 +95,7 @@ export function CategoryMultiSelect({
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search categories"
+              placeholder={`Search ${noun}`}
               className="h-9 pl-8"
             />
           </div>
@@ -126,7 +129,7 @@ export function CategoryMultiSelect({
 
         <div className="max-h-80 overflow-y-auto p-1">
           {visibleGroups.length === 0 ? (
-            <p className="p-3 text-center text-sm text-muted-foreground">No categories match.</p>
+            <p className="p-3 text-center text-sm text-muted-foreground">Nothing matches.</p>
           ) : (
             visibleGroups.map((group) => {
               const codes = group.options.map((option) => option.value)
@@ -217,9 +220,9 @@ function Row({
   )
 }
 
-function summarise(selected: string[], total: number) {
-  if (total === 0) return "No categories available"
-  if (selected.length === 0) return "No categories selected"
-  if (selected.length === total) return `All categories (${total})`
-  return `${selected.length} of ${total} categories`
+function summarise(selected: string[], total: number, noun: string) {
+  if (total === 0) return `No ${noun} available`
+  if (selected.length === 0) return `No ${noun} selected`
+  if (selected.length === total) return `All ${noun} (${total})`
+  return `${selected.length} of ${total} ${noun}`
 }

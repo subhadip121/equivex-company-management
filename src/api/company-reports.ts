@@ -709,6 +709,335 @@ export function downloadTopHundredPdf(request: TopHundredRequest) {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Lock-in Shares Summary
+// ---------------------------------------------------------------------------
+
+export interface LockInRequest {
+  companyId: number
+  date: string
+  categories: string[]
+}
+
+export interface LockInRow {
+  /** Category code, named `status` on the wire. */
+  code: string
+  name: string
+  holders: number
+  totalShares: number
+  lockInShares: number
+  holdingPercentage: number
+}
+
+export interface LockInTotals {
+  holders: number
+  totalShares: number
+  lockInShares: number
+  holdingPercentage: number
+}
+
+export interface LockInReport {
+  uploadDate: string
+  shareCapital: number
+  rows: LockInRow[]
+  totals: LockInTotals
+}
+
+interface LockInRaw {
+  upload_date?: string
+  share_capital?: unknown
+  summary?: Array<{
+    status?: string
+    category_name?: string
+    holders?: unknown
+    total_shares?: unknown
+    lockin_shares?: unknown
+    holding_percentage?: unknown
+  }>
+  totals?: {
+    holders?: unknown
+    total_shares?: unknown
+    lockin_shares?: unknown
+    holding_percentage?: unknown
+  }
+}
+
+/** This endpoint spells the list `categories`, unlike the others. */
+function toLockInPayload(request: LockInRequest) {
+  return {
+    company_id: request.companyId,
+    upload_date: toYmdDate(request.date),
+    categories: request.categories,
+  }
+}
+
+export async function fetchLockInShares(request: LockInRequest): Promise<LockInReport> {
+  const response = await http<LockInRaw>(endpoints.company.lockInShares, {
+    method: "POST",
+    body: JSON.stringify(toLockInPayload(request)),
+  })
+
+  const totals = response.totals ?? {}
+
+  return {
+    uploadDate: String(response.upload_date ?? request.date),
+    shareCapital: toNumber(response.share_capital),
+    rows: (response.summary ?? []).map((row) => ({
+      code: String(row.status ?? ""),
+      name: String(row.category_name ?? row.status ?? ""),
+      holders: toNumber(row.holders),
+      totalShares: toNumber(row.total_shares),
+      lockInShares: toNumber(row.lockin_shares),
+      holdingPercentage: toNumber(row.holding_percentage),
+    })),
+    totals: {
+      holders: toNumber(totals.holders),
+      totalShares: toNumber(totals.total_shares),
+      lockInShares: toNumber(totals.lockin_shares),
+      holdingPercentage: toNumber(totals.holding_percentage),
+    },
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadLockInSharesExcel(request: LockInRequest) {
+  return download(endpoints.company.lockInSharesExcel, `lock-in-shares-${request.date}.csv`, {
+    method: "POST",
+    body: toLockInPayload(request),
+  })
+}
+
+export function downloadLockInSharesPdf(request: LockInRequest) {
+  return download(endpoints.company.lockInSharesPdf, `lock-in-shares-${request.date}.pdf`, {
+    method: "POST",
+    body: toLockInPayload(request),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Share Holding
+// ---------------------------------------------------------------------------
+
+/**
+ * Columns the endpoint will return, confirmed by probing it: anything else
+ * in `keys` is silently dropped from the rows.
+ */
+export const SHARE_HOLDING_KEYS = [
+  { value: "folio_id", label: "Folio ID" },
+  { value: "holder_name", label: "Holder name" },
+  { value: "pan1", label: "PAN 1" },
+  { value: "pan2", label: "PAN 2" },
+  { value: "shares", label: "Shares", numeric: true },
+  { value: "percentage", label: "% To Equity", percentage: true },
+  { value: "folio_count", label: "Folio count", numeric: true },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "address1", label: "Address 1" },
+  { value: "address2", label: "Address 2" },
+  { value: "address3", label: "Address 3" },
+  { value: "address4", label: "Address 4" },
+  { value: "pin", label: "PIN" },
+] as const
+
+export type ShareHoldingKey = (typeof SHARE_HOLDING_KEYS)[number]["value"]
+
+/** The columns the sample payload asks for. */
+export const DEFAULT_SHARE_HOLDING_KEYS: string[] = [
+  "folio_id",
+  "holder_name",
+  "pan1",
+  "shares",
+  "percentage",
+  "folio_count",
+]
+
+export interface ShareHoldingRequest {
+  companyId: number
+  /** One or more record dates, sent as `record_dates`. */
+  dates: string[]
+  categories: string[]
+  /** Top N holdings to consider. */
+  range: number
+  page: number
+  pageSize: number
+  keys: string[]
+}
+
+export interface ShareHoldingReport {
+  rows: ReportRow[]
+  shareCapital: number
+  range: number
+  totalTopShares: number
+  totalPercentage: number
+  pagination: PaginationMeta
+}
+
+interface ShareHoldingRaw {
+  data?: ReportRow[]
+  company_share_capital?: unknown
+  range?: unknown
+  totals?: { total_top_shares?: unknown; total_percentage?: unknown }
+  pagination?: {
+    page?: unknown
+    page_size?: unknown
+    total_records?: unknown
+    total_pages?: unknown
+    has_next?: boolean
+    has_previous?: boolean
+  }
+}
+
+/** `type` is P for the on-screen report and C for the exports. */
+function toShareHoldingPayload(request: ShareHoldingRequest, type: "P" | "C") {
+  const payload: Record<string, unknown> = {
+    company_id: request.companyId,
+    record_dates: request.dates.map(toYmdDate),
+    categories: request.categories,
+    range: request.range,
+    page_size: request.pageSize,
+    type,
+    keys: request.keys,
+  }
+
+  // Exports return the whole set, so they carry no page.
+  if (type === "P") payload.page = request.page
+  return payload
+}
+
+export async function fetchShareHolding(
+  request: ShareHoldingRequest,
+): Promise<ShareHoldingReport> {
+  const response = await http<ShareHoldingRaw>(endpoints.company.shareHolding, {
+    method: "POST",
+    body: JSON.stringify(toShareHoldingPayload(request, "P")),
+  })
+
+  const pagination = response.pagination ?? {}
+  const page = toNumber(pagination.page) || request.page
+  const pageSize = toNumber(pagination.page_size) || request.pageSize
+  const totalRecords = toNumber(pagination.total_records)
+  const totalPages =
+    toNumber(pagination.total_pages) || (pageSize > 0 ? Math.ceil(totalRecords / pageSize) : 1)
+
+  return {
+    rows: response.data ?? [],
+    shareCapital: toNumber(response.company_share_capital),
+    range: toNumber(response.range) || request.range,
+    totalTopShares: toNumber(response.totals?.total_top_shares),
+    totalPercentage: toNumber(response.totals?.total_percentage),
+    pagination: {
+      page,
+      pageSize,
+      totalRecords,
+      totalPages,
+      hasNext: Boolean(pagination.has_next),
+      hasPrevious: Boolean(pagination.has_previous),
+    },
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadShareHoldingExcel(request: ShareHoldingRequest) {
+  return download(endpoints.company.shareHoldingExcel, `share-holding-${request.dates[0]}.csv`, {
+    method: "POST",
+    body: toShareHoldingPayload(request, "C"),
+  })
+}
+
+export function downloadShareHoldingPdf(request: ShareHoldingRequest) {
+  return download(endpoints.company.shareHoldingPdf, `share-holding-${request.dates[0]}.pdf`, {
+    method: "POST",
+    body: toShareHoldingPayload(request, "C"),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Pledge Shares Summary
+// ---------------------------------------------------------------------------
+
+export interface PledgeRow {
+  code: string
+  name: string
+  holders: number
+  totalShares: number
+  pledgeShares: number
+  pledgePercentage: number
+}
+
+export interface PledgeTotals {
+  holders: number
+  totalShares: number
+  pledgeShares: number
+  pledgePercentage: number
+}
+
+export interface PledgeReport {
+  uploadDate: string
+  rows: PledgeRow[]
+  totals: PledgeTotals
+}
+
+interface PledgeRaw {
+  data?: Array<{
+    category_code?: string
+    category_name?: string
+    holders?: unknown
+    total_shares?: unknown
+    pledge_shares?: unknown
+    pledge_percentage?: unknown
+  }>
+  /** Singular here, unlike the lock-in report's `totals`. */
+  total?: {
+    holders?: unknown
+    total_shares?: unknown
+    pledge_shares?: unknown
+    pledge_percentage?: unknown
+  }
+}
+
+/** Same request shape as the lock-in summary. */
+export async function fetchPledgeShares(request: LockInRequest): Promise<PledgeReport> {
+  const response = await http<PledgeRaw>(endpoints.company.pledgeShares, {
+    method: "POST",
+    body: JSON.stringify(toLockInPayload(request)),
+  })
+
+  const totals = response.total ?? {}
+
+  return {
+    uploadDate: request.date,
+    rows: (response.data ?? []).map((row) => ({
+      code: String(row.category_code ?? ""),
+      name: String(row.category_name ?? row.category_code ?? ""),
+      holders: toNumber(row.holders),
+      totalShares: toNumber(row.total_shares),
+      pledgeShares: toNumber(row.pledge_shares),
+      pledgePercentage: toNumber(row.pledge_percentage),
+    })),
+    totals: {
+      holders: toNumber(totals.holders),
+      totalShares: toNumber(totals.total_shares),
+      pledgeShares: toNumber(totals.pledge_shares),
+      pledgePercentage: toNumber(totals.pledge_percentage),
+    },
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadPledgeSharesExcel(request: LockInRequest) {
+  return download(endpoints.company.pledgeSharesExcel, `pledge-shares-${request.date}.csv`, {
+    method: "POST",
+    body: toLockInPayload(request),
+  })
+}
+
+export function downloadPledgeSharesPdf(request: LockInRequest) {
+  return download(endpoints.company.pledgeSharesPdf, `pledge-shares-${request.date}.pdf`, {
+    method: "POST",
+    body: toLockInPayload(request),
+  })
+}
+
 export interface CapitalAnalysisRequest {
   companyId: number
   date: string
