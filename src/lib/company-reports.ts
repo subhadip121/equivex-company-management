@@ -8,6 +8,7 @@ import {
   Lock,
   PieChart,
   Percent,
+  ScrollText,
   Search,
   Users,
 } from "lucide-react"
@@ -63,6 +64,12 @@ export const REPORT_GROUPS: ReportGroup[] = [
   {
     label: "Shareholders",
     reports: [
+      {
+        slug: "benpose-details",
+        title: "Benpose Details",
+        description: "Holder level beneficial position by depository.",
+        icon: ScrollText,
+      },
       {
         slug: "search",
         title: "Search",

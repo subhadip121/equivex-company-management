@@ -11,6 +11,10 @@ import {
   downloadLockInSharesExcel,
   downloadPledgeSharesExcel,
   downloadPledgeSharesPdf,
+  downloadBenposeExcel,
+  downloadBenposePdf,
+  downloadSearchExcel,
+  downloadSearchPdf,
   downloadShareHoldingExcel,
   downloadShareHoldingPdf,
   downloadLockInSharesPdf,
@@ -28,6 +32,8 @@ import {
   fetchDistribution,
   fetchLockInShares,
   fetchPledgeShares,
+  fetchBenpose,
+  fetchSearch,
   fetchShareHolding,
   fetchNotionalValue,
   fetchTopHundredComparison,
@@ -40,6 +46,8 @@ import {
   type ConsolidatedReportRequest,
   type DistributionRequest,
   type LockInRequest,
+  type BenposeRequest,
+  type SearchRequest,
   type ShareHoldingRequest,
   type TopHundredRequest,
   type OnePercentShareholdersRequest,
@@ -200,6 +208,46 @@ export function usePledgeShares(request: LockInRequest | null) {
 export function useDownloadPledgeShares() {
   const excel = useMutation({ mutationFn: downloadPledgeSharesExcel })
   const pdf = useMutation({ mutationFn: downloadPledgeSharesPdf })
+  return { excel, pdf }
+}
+
+export function useSearch(request: SearchRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.search(
+      request?.keyword ?? "",
+      request?.date ?? "",
+      request?.page ?? 1,
+      request?.pageSize ?? 0,
+    ),
+    queryFn: () => fetchSearch(request!),
+    enabled: request !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useDownloadSearch() {
+  const excel = useMutation({ mutationFn: downloadSearchExcel })
+  const pdf = useMutation({ mutationFn: downloadSearchPdf })
+  return { excel, pdf }
+}
+
+export function useBenpose(request: BenposeRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.benpose(
+      request?.date ?? "",
+      request?.depositoryType ?? "",
+      request?.page ?? 1,
+      request?.pageSize ?? 0,
+    ),
+    queryFn: () => fetchBenpose(request!),
+    enabled: request !== null,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useDownloadBenpose() {
+  const excel = useMutation({ mutationFn: downloadBenposeExcel })
+  const pdf = useMutation({ mutationFn: downloadBenposePdf })
   return { excel, pdf }
 }
 

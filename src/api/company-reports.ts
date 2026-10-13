@@ -1038,6 +1038,268 @@ export function downloadPledgeSharesPdf(request: LockInRequest) {
   })
 }
 
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
+export interface SearchRequest {
+  companyId: number
+  keyword: string
+  /** Empty when searching across every date. */
+  date: string
+  page: number
+  pageSize: number
+}
+
+export interface SearchRow {
+  insertDate: string
+  dpId: string
+  folioId: string
+  clientId: string
+  name: string
+  shares: number
+  sharePercentage: number
+  jointHolder1: string
+  jointHolder2: string
+  address: string
+  pin: string
+  email: string
+  phone: string
+  fatherOrHusband: string
+  occupation: string
+  pan1: string
+  pan2: string
+  pan3: string
+}
+
+export interface SearchReport {
+  rows: SearchRow[]
+  countInPage: number
+  sharesInPage: number
+  pagination: PaginationMeta
+}
+
+interface SearchRaw {
+  data?: Array<Record<string, unknown>>
+  summary?: { count_in_page?: unknown; total_shares_in_page?: unknown }
+  pagination?: {
+    page?: unknown
+    page_size?: unknown
+    total_items?: unknown
+    total_pages?: unknown
+    has_next?: boolean
+    has_previous?: boolean
+  }
+}
+
+function text(value: unknown) {
+  return value === null || value === undefined ? "" : String(value)
+}
+
+/**
+ * `upload_date` is an empty array when no date is chosen and a plain
+ * string when one is, which is what `include_date` signals.
+ */
+function toSearchPayload(request: SearchRequest, withPage: boolean) {
+  const hasDate = Boolean(request.date)
+  const payload: Record<string, unknown> = {
+    company_id: request.companyId,
+    upload_date: hasDate ? toYmdDate(request.date) : [],
+    include_date: hasDate,
+    keyword: request.keyword.trim(),
+  }
+
+  if (withPage) {
+    payload.page = request.page
+    payload.page_size = request.pageSize
+  }
+
+  return payload
+}
+
+export async function fetchSearch(request: SearchRequest): Promise<SearchReport> {
+  const response = await http<SearchRaw>(endpoints.company.search, {
+    method: "POST",
+    body: JSON.stringify(toSearchPayload(request, true)),
+  })
+
+  const pagination = response.pagination ?? {}
+  const page = toNumber(pagination.page) || request.page
+  const pageSize = toNumber(pagination.page_size) || request.pageSize
+  const totalRecords = toNumber(pagination.total_items)
+  const totalPages =
+    toNumber(pagination.total_pages) || (pageSize > 0 ? Math.ceil(totalRecords / pageSize) : 1)
+
+  return {
+    rows: (response.data ?? []).map((row) => ({
+      insertDate: text(row.insert_date),
+      dpId: text(row.Dp_ID),
+      folioId: text(row.Folio_ID),
+      clientId: text(row.client_id),
+      name: text(row.user_name),
+      shares: toNumber(row.Shares),
+      sharePercentage: toNumber(row.share_percentage),
+      jointHolder1: text(row.Jh1),
+      jointHolder2: text(row.Jh2),
+      // The four address lines read as one block.
+      address: [row.address1, row.address2, row.address3, row.address4]
+        .map(text)
+        .filter(Boolean)
+        .join(", "),
+      pin: text(row.pin),
+      email: text(row.email_id),
+      phone: text(row.phone),
+      fatherOrHusband: text(row.father_husband),
+      occupation: text(row.occupation),
+      pan1: text(row.Pan1),
+      pan2: text(row.Pan2),
+      pan3: text(row.Pan3),
+    })),
+    countInPage: toNumber(response.summary?.count_in_page),
+    sharesInPage: toNumber(response.summary?.total_shares_in_page),
+    pagination: {
+      page,
+      pageSize,
+      totalRecords,
+      totalPages,
+      hasNext: Boolean(pagination.has_next),
+      hasPrevious: Boolean(pagination.has_previous),
+    },
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadSearchExcel(request: SearchRequest) {
+  return download(endpoints.company.searchExcel, `search-${request.keyword.trim()}.csv`, {
+    method: "POST",
+    body: toSearchPayload(request, false),
+  })
+}
+
+export function downloadSearchPdf(request: SearchRequest) {
+  return download(endpoints.company.searchPdf, `search-${request.keyword.trim()}.pdf`, {
+    method: "POST",
+    body: toSearchPayload(request, false),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Benpose Details
+// ---------------------------------------------------------------------------
+
+/** This endpoint spells the combined option "All", not "ALL". */
+export type BenposeDepository = "All" | "NSDL" | "CDSL" | "PHYSICAL"
+
+export interface BenposeRequest {
+  companyId: number
+  depositoryType: BenposeDepository
+  date: string
+  page: number
+  pageSize: number
+}
+
+export interface BenposeRow {
+  id: number
+  companyCode: string
+  insertDate: string
+  folioId: string
+  dpId: string
+  name: string
+  shares: number
+  pledgeShares: number
+  lockShares: number
+  address: string
+  pin: string
+  pan1: string
+  status: string
+  depositoryType: string
+}
+
+export interface BenposeReport {
+  rows: BenposeRow[]
+  pagination: PaginationMeta
+}
+
+interface BenposeRaw {
+  total_records?: unknown
+  page?: unknown
+  page_size?: unknown
+  data?: Array<Record<string, unknown>>
+}
+
+function toBenposePayload(request: BenposeRequest, withPage: boolean) {
+  const payload: Record<string, unknown> = {
+    company_id: request.companyId,
+    depository_type: request.depositoryType,
+    insert_date: toYmdDate(request.date),
+  }
+
+  // Exports return the whole set, so they carry no page.
+  if (withPage) {
+    payload.page = request.page
+    payload.page_size = request.pageSize
+  }
+
+  return payload
+}
+
+export async function fetchBenpose(request: BenposeRequest): Promise<BenposeReport> {
+  const response = await http<BenposeRaw>(endpoints.company.benpose, {
+    method: "POST",
+    body: JSON.stringify(toBenposePayload(request, true)),
+  })
+
+  // Paging fields sit at the top level here, not in a pagination block.
+  const page = toNumber(response.page) || request.page
+  const pageSize = toNumber(response.page_size) || request.pageSize
+  const totalRecords = toNumber(response.total_records)
+
+  return {
+    rows: (response.data ?? []).map((row) => ({
+      id: toNumber(row.id),
+      companyCode: text(row.company_code),
+      insertDate: text(row.insert_date),
+      folioId: text(row.Folio_ID),
+      dpId: text(row.Dp_ID),
+      name: text(row.user_name),
+      shares: toNumber(row.Shares),
+      pledgeShares: toNumber(row.Pledge_Shares),
+      lockShares: toNumber(row.Lock_Shares),
+      address: [row.address1, row.address2, row.address3]
+        .map(text)
+        .filter(Boolean)
+        .join(", "),
+      pin: text(row.pin),
+      pan1: text(row.Pan1),
+      status: text(row.status),
+      depositoryType: text(row.depository_type),
+    })),
+    pagination: {
+      page,
+      pageSize,
+      totalRecords,
+      totalPages: pageSize > 0 ? Math.max(1, Math.ceil(totalRecords / pageSize)) : 1,
+      hasNext: page * pageSize < totalRecords,
+      hasPrevious: page > 1,
+    },
+  }
+}
+
+/** The export endpoint returns CSV, so the fallback name matches. */
+export function downloadBenposeExcel(request: BenposeRequest) {
+  return download(endpoints.company.benposeExcel, `benpose-details-${request.date}.csv`, {
+    method: "POST",
+    body: toBenposePayload(request, false),
+  })
+}
+
+export function downloadBenposePdf(request: BenposeRequest) {
+  return download(endpoints.company.benposePdf, `benpose-details-${request.date}.pdf`, {
+    method: "POST",
+    body: toBenposePayload(request, false),
+  })
+}
+
 export interface CapitalAnalysisRequest {
   companyId: number
   date: string

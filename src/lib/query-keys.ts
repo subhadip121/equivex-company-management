@@ -46,6 +46,10 @@ export const queryKeys = {
     pageSize: number,
   ) =>
     ["company", "share-holding", { dates, categories, range, keys, page, pageSize }] as const,
+  benpose: (date: string, depositoryType: string, page: number, pageSize: number) =>
+    ["company", "benpose", { date, depositoryType, page, pageSize }] as const,
+  search: (keyword: string, date: string, page: number, pageSize: number) =>
+    ["company", "search", { keyword, date, page, pageSize }] as const,
   pledgeShares: (date: string, categories: string[]) =>
     ["company", "pledge-shares", { date, categories }] as const,
   lockInShares: (date: string, categories: string[]) =>

@@ -53,6 +53,15 @@ export const endpoints = {
     topHundredComparisonExcel: "/company/reportView/topHundredShareholdersExcel/",
     topHundredComparisonPdf: "/company/reportView/topHundredShareholdersPdf/",
 
+    benpose: "/company/reportView/benposeDetails/",
+    benposeExcel: "/company/reportView/benposeDetailsReportExcel/",
+    benposePdf: "/company/reportView/benposeDetailsReportPdf/",
+
+    search: "/company/reportView/searchReport/",
+    searchExcel: "/company/reportView/searchReportExcel/",
+    // Note the different word order on this one.
+    searchPdf: "/company/reportView/reportSearchPdf/",
+
     shareHolding: "/company/reportView/shareHoldingReport/",
     shareHoldingExcel: "/company/reportView/shareHoldingExcelExport/",
     shareHoldingPdf: "/company/reportView/shareHoldingPdf/",

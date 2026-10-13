@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { REPORT_GROUPS, findReport } from "@/lib/company-reports"
+import { BenposeDetailsReport } from "@/pages/company/reports/benpose-details"
 import { ConsolidatedChangeInShareholdingReport } from "@/pages/company/reports/consolidated-change-in-shareholding"
 import { ConsolidatedShareholdingPatternReport } from "@/pages/company/reports/consolidated-shareholding-pattern"
 import { DistributionByNotionalValueReport } from "@/pages/company/reports/distribution-by-notional-value"
@@ -20,6 +21,7 @@ import { DistributionByShareHoldingReport } from "@/pages/company/reports/distri
 import { LockInSharesSummaryReport } from "@/pages/company/reports/lock-in-shares-summary"
 import { OnePercentShareholdersReport } from "@/pages/company/reports/one-percent-shareholders"
 import { PledgeSharesSummaryReport } from "@/pages/company/reports/pledge-shares-summary"
+import { SearchReport } from "@/pages/company/reports/search"
 import { ShareHoldingReport } from "@/pages/company/reports/share-holding"
 import { SummaryOfShareholdingReport } from "@/pages/company/reports/summary-of-shareholding"
 import { TopHundredComparisonReport } from "@/pages/company/reports/top-hundred-comparison"
@@ -37,6 +39,8 @@ const REPORT_SCREENS: Record<string, () => React.ReactElement> = {
   "top-100-comparison-two-weeks": TopHundredComparisonReport,
   "lock-in-shares-summary": LockInSharesSummaryReport,
   "share-holding": ShareHoldingReport,
+  search: SearchReport,
+  "benpose-details": BenposeDetailsReport,
   "pledge-shares-summary": PledgeSharesSummaryReport,
 }
 
