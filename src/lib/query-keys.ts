@@ -42,12 +42,19 @@ export const queryKeys = {
     categories: string[],
     range: number,
     keys: string[],
+    depositoryType: string,
     page: number,
     pageSize: number,
   ) =>
-    ["company", "share-holding", { dates, categories, range, keys, page, pageSize }] as const,
+    [
+      "company",
+      "share-holding",
+      { dates, categories, range, keys, depositoryType, page, pageSize },
+    ] as const,
   benpose: (date: string, depositoryType: string, page: number, pageSize: number) =>
     ["company", "benpose", { date, depositoryType, page, pageSize }] as const,
+  folioDetails: (pan: string, date: string) =>
+    ["company", "folio-details", { pan, date }] as const,
   search: (keyword: string, date: string, page: number, pageSize: number) =>
     ["company", "search", { keyword, date, page, pageSize }] as const,
   pledgeShares: (date: string, categories: string[]) =>

@@ -5,12 +5,17 @@ import { CategoryMultiSelect } from "@/components/report/category-multi-select"
 import { PaginationBar } from "@/components/layout/pagination-bar"
 import { ReportTableSkeleton } from "@/components/report/report-data-table"
 import {
+  FolioDetailsDialog,
+  type FolioTarget,
+} from "@/components/report/folio-details-dialog"
+import {
   ShareHoldingSummary,
   ShareHoldingTable,
 } from "@/components/report/share-holding-table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -19,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/hooks/use-auth"
 import {
   useDownloadShareHolding,
@@ -30,11 +36,24 @@ import {
   DEFAULT_SHARE_HOLDING_KEYS,
   flattenCategories,
   SHARE_HOLDING_KEYS,
+  toYmdDate,
 } from "@/api/company-reports"
 import { QueryError } from "@/pages/shared/query-error"
-import type { CategoryGroup, ShareHoldingRequest } from "@/api/company-reports"
+import type {
+  CategoryGroup,
+  ShareHoldingDepository,
+  ShareHoldingRequest,
+} from "@/api/company-reports"
 
 const RANGE_OPTIONS = [50, 100, 200, 500, 1000]
+
+/** Single-letter codes the endpoint expects, with readable names. */
+const DEPOSITORY_OPTIONS: Array<{ value: ShareHoldingDepository; label: string }> = [
+  { value: "A", label: "All" },
+  { value: "N", label: "NSDL" },
+  { value: "C", label: "CDSL" },
+  { value: "P", label: "Physical" },
+]
 const PAGE_SIZE = 100
 
 export function ShareHoldingReport() {
@@ -44,24 +63,18 @@ export function ShareHoldingReport() {
   const categories = useReportCategories()
   const dates = useReportDates()
 
-  const [chosenDates, setChosenDates] = useState<string[] | null>(null)
+  const [chosenDate, setChosenDate] = useState<string | null>(null)
   const [chosenCategories, setChosenCategories] = useState<string[] | null>(null)
   const [range, setRange] = useState(100)
+  const [depositoryType, setDepositoryType] = useState<ShareHoldingDepository>("A")
   const [keys, setKeys] = useState<string[]>(DEFAULT_SHARE_HOLDING_KEYS)
   const [error, setError] = useState<string | null>(null)
   const [applied, setApplied] = useState<ShareHoldingRequest | null>(null)
+  // Columns the user picked, which may omit the PAN the request carries.
+  const [displayKeys, setDisplayKeys] = useState<string[]>(DEFAULT_SHARE_HOLDING_KEYS)
+  const [folioTarget, setFolioTarget] = useState<FolioTarget | null>(null)
 
-  // Dates and columns reuse the category picker, each as a single group.
-  const dateGroups = useMemo<CategoryGroup[]>(
-    () => [
-      {
-        label: "Record dates",
-        options: (dates.data ?? []).map((option) => ({ ...option, group: "Record dates" })),
-      },
-    ],
-    [dates.data],
-  )
-
+  // Columns reuse the category picker, as a single group.
   const keyGroups = useMemo<CategoryGroup[]>(
     () => [
       {
@@ -78,7 +91,18 @@ export function ShareHoldingReport() {
 
   const allCategoryValues = flattenCategories(categories.data ?? []).map((option) => option.value)
   // Newest record date, every category, until the user chooses otherwise.
-  const selectedDates = chosenDates ?? (dates.data?.[0] ? [dates.data[0].value] : [])
+  // The picker accepts any date, so a value typed there will not be in the
+  // list; back on the dropdown it falls to the first option rather than
+  // showing an empty field.
+  const dateOptions = dates.data?.map((option) => option.value) ?? []
+  const isPhysical = depositoryType === "P"
+  const date = isPhysical
+    ? (chosenDate ?? dateOptions[0] ?? "")
+    : chosenDate && dateOptions.includes(chosenDate)
+      ? chosenDate
+      : (dateOptions[0] ?? "")
+  // The endpoint takes a list, so the single choice is sent as one entry.
+  const selectedDates = date ? [date] : []
   const selectedCategories = chosenCategories ?? allCategoryValues
 
   const report = useShareHolding(applied)
@@ -98,20 +122,27 @@ export function ShareHoldingReport() {
       return null
     }
 
+    // The folio dialog looks up by PAN, so it is always requested even
+    // when it is not one of the chosen columns.
+    const requestKeys = keys.includes("pan1") ? keys : [...keys, "pan1"]
+
     return {
       companyId,
       dates: selectedDates,
       categories: selectedCategories,
       range,
+      depositoryType,
       page,
       pageSize: PAGE_SIZE,
-      keys,
+      keys: requestKeys,
     }
   }
 
   function apply() {
     const request = buildRequest(1)
-    if (request) setApplied(request)
+    if (!request) return
+    setDisplayKeys(keys)
+    setApplied(request)
   }
 
   function runDownload(kind: "excel" | "pdf") {
@@ -132,14 +163,34 @@ export function ShareHoldingReport() {
       <Card className="mb-3 py-0">
         <CardContent className="grid gap-3 p-3 lg:grid-cols-2 xl:grid-cols-4 xl:items-end">
           <div className="space-y-1.5">
-            <Label className="text-xs">Record dates</Label>
-            <CategoryMultiSelect
-              groups={dateGroups}
-              selected={selectedDates}
-              onChange={setChosenDates}
-              isLoading={dates.isPending}
-              noun="dates"
-            />
+            <Label htmlFor="report-date" className="text-xs">
+              Record date
+            </Label>
+            {/* Physical holdings are not tied to a benpose upload, so any
+                date can be entered rather than picked from the list. */}
+            {isPhysical ? (
+              <Input
+                id="report-date"
+                type="date"
+                value={toYmdDate(date)}
+                onChange={(event) => setChosenDate(event.target.value)}
+              />
+            ) : dates.isPending ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select value={date} onValueChange={setChosenDate} disabled={!dates.data?.length}>
+                <SelectTrigger id="report-date" className="w-full">
+                  <SelectValue placeholder="Select date" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dates.data?.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -160,6 +211,27 @@ export function ShareHoldingReport() {
               onChange={setKeys}
               noun="columns"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="depository-type" className="text-xs">
+              Depository
+            </Label>
+            <Select
+              value={depositoryType}
+              onValueChange={(value) => setDepositoryType(value as ShareHoldingDepository)}
+            >
+              <SelectTrigger id="depository-type" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DEPOSITORY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
@@ -262,8 +334,11 @@ export function ShareHoldingReport() {
           <>
             <ShareHoldingTable
               report={report.data}
-              keys={applied.keys}
+              keys={displayKeys}
               startIndex={firstRowNumber}
+              onOpenFolios={(pan) =>
+                setFolioTarget({ companyId, pan, date: applied.dates[0] ?? "" })
+              }
             />
             <PaginationBar
               page={report.data.pagination.page}
@@ -281,6 +356,8 @@ export function ShareHoldingReport() {
           />
         )}
       </Card>
+
+      <FolioDetailsDialog target={folioTarget} onClose={() => setFolioTarget(null)} />
     </>
   )
 }

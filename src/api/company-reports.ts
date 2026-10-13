@@ -851,8 +851,12 @@ export const DEFAULT_SHARE_HOLDING_KEYS: string[] = [
   "folio_count",
 ]
 
+/** Single-letter codes: All, NSDL, CDSL, Physical. */
+export type ShareHoldingDepository = "A" | "N" | "C" | "P"
+
 export interface ShareHoldingRequest {
   companyId: number
+  depositoryType: ShareHoldingDepository
   /** One or more record dates, sent as `record_dates`. */
   dates: string[]
   categories: string[]
@@ -895,6 +899,7 @@ function toShareHoldingPayload(request: ShareHoldingRequest, type: "P" | "C") {
     categories: request.categories,
     range: request.range,
     page_size: request.pageSize,
+    depository_type: request.depositoryType,
     type,
     keys: request.keys,
   }
@@ -1298,6 +1303,81 @@ export function downloadBenposePdf(request: BenposeRequest) {
     method: "POST",
     body: toBenposePayload(request, false),
   })
+}
+
+// ---------------------------------------------------------------------------
+// Folio details, opened from a "Multiple Folio ID" row
+// ---------------------------------------------------------------------------
+
+/** The cell text that marks a holder with more than one folio. */
+export const MULTIPLE_FOLIO_LABEL = "Multiple Folio ID"
+
+export interface FolioDetailsRequest {
+  companyId: number
+  pan: string
+  date: string
+}
+
+export interface FolioDetailRow {
+  clientId: string
+  name: string
+  shares: number
+  jointHolder1: string
+  jointHolder2: string
+  address: string
+  pin: string
+  email: string
+  phone: string
+  fatherOrHusband: string
+  occupation: string
+  pan: string
+}
+
+export interface FolioDetailsResult {
+  pan: string
+  rowCount: number
+  rows: FolioDetailRow[]
+}
+
+interface FolioDetailsRaw {
+  pan?: string
+  row_count?: unknown
+  data?: Array<Record<string, unknown>>
+}
+
+export async function fetchFolioDetails(
+  request: FolioDetailsRequest,
+): Promise<FolioDetailsResult> {
+  const response = await http<FolioDetailsRaw>(endpoints.company.folioDetails, {
+    method: "POST",
+    body: JSON.stringify({
+      company_id: request.companyId,
+      pan: request.pan,
+      upload_date: toYmdDate(request.date),
+    }),
+  })
+
+  return {
+    pan: text(response.pan) || request.pan,
+    rowCount: toNumber(response.row_count),
+    rows: (response.data ?? []).map((row) => ({
+      clientId: text(row.client_id),
+      name: text(row.user_name),
+      shares: toNumber(row.shares),
+      jointHolder1: text(row.joint_holder1),
+      jointHolder2: text(row.joint_holder2),
+      address: [row.address1, row.address2, row.address3, row.address4]
+        .map(text)
+        .filter(Boolean)
+        .join(", "),
+      pin: text(row.pin),
+      email: text(row.email),
+      phone: text(row.phone),
+      fatherOrHusband: text(row.father_husband),
+      occupation: text(row.occupation),
+      pan: text(row.pan),
+    })),
+  }
 }
 
 export interface CapitalAnalysisRequest {

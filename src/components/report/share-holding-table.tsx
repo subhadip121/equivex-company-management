@@ -8,7 +8,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatNumber, formatPercent, humaniseKey } from "@/lib/format"
-import { SHARE_HOLDING_KEYS, type ShareHoldingReport } from "@/api/company-reports"
+import {
+  MULTIPLE_FOLIO_LABEL,
+  SHARE_HOLDING_KEYS,
+  type ShareHoldingReport,
+} from "@/api/company-reports"
 
 type ColumnSpec = {
   value: string
@@ -51,10 +55,13 @@ export function ShareHoldingTable({
   report,
   keys,
   startIndex,
+  onOpenFolios,
 }: {
   report: ShareHoldingReport
   keys: string[]
   startIndex: number
+  /** Called with the row's PAN when its folio cell is clicked. */
+  onOpenFolios: (pan: string) => void
 }) {
   const columns = keys.map(specFor)
 
@@ -87,18 +94,42 @@ export function ShareHoldingTable({
             <TableCell className="text-right text-muted-foreground tabular-nums">
               {startIndex + index}
             </TableCell>
-            {columns.map((column) => (
-              <TableCell
-                key={column.value}
-                className={
-                  column.numeric || column.percentage
-                    ? "text-right tabular-nums"
-                    : "max-w-56 truncate"
-                }
-              >
-                {render(column, row[column.value])}
-              </TableCell>
-            ))}
+            {columns.map((column) => {
+              const value = row[column.value]
+              // A folio of "Multiple Folio ID" means the holder has several,
+              // so the cell opens them in a dialog. Matched loosely, so
+              // stray spacing or casing from the API still counts.
+              const isMultipleFolio =
+                column.value === "folio_id" &&
+                String(value ?? "")
+                  .trim()
+                  .toLowerCase() === MULTIPLE_FOLIO_LABEL.toLowerCase()
+              // The PAN may come back under any of these spellings.
+              const pan = String(row.pan1 ?? row.pan ?? row.Pan1 ?? row.PAN1 ?? "").trim()
+
+              return (
+                <TableCell
+                  key={column.value}
+                  className={
+                    column.numeric || column.percentage
+                      ? "text-right tabular-nums"
+                      : "max-w-56 truncate"
+                  }
+                >
+                  {isMultipleFolio ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenFolios(pan)}
+                      className="font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      {MULTIPLE_FOLIO_LABEL}
+                    </button>
+                  ) : (
+                    render(column, value)
+                  )}
+                </TableCell>
+              )
+            })}
           </TableRow>
         ))}
       </TableBody>

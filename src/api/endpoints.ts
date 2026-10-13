@@ -63,6 +63,7 @@ export const endpoints = {
     searchPdf: "/company/reportView/reportSearchPdf/",
 
     shareHolding: "/company/reportView/shareHoldingReport/",
+    folioDetails: "/company/reportView/FolioDetails/",
     shareHoldingExcel: "/company/reportView/shareHoldingExcelExport/",
     shareHoldingPdf: "/company/reportView/shareHoldingPdf/",
 

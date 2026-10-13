@@ -33,6 +33,7 @@ import {
   fetchLockInShares,
   fetchPledgeShares,
   fetchBenpose,
+  fetchFolioDetails,
   fetchSearch,
   fetchShareHolding,
   fetchNotionalValue,
@@ -47,6 +48,7 @@ import {
   type DistributionRequest,
   type LockInRequest,
   type BenposeRequest,
+  type FolioDetailsRequest,
   type SearchRequest,
   type ShareHoldingRequest,
   type TopHundredRequest,
@@ -182,6 +184,7 @@ export function useShareHolding(request: ShareHoldingRequest | null) {
       request?.categories ?? [],
       request?.range ?? 0,
       request?.keys ?? [],
+      request?.depositoryType ?? "A",
       request?.page ?? 1,
       request?.pageSize ?? 0,
     ),
@@ -249,6 +252,15 @@ export function useDownloadBenpose() {
   const excel = useMutation({ mutationFn: downloadBenposeExcel })
   const pdf = useMutation({ mutationFn: downloadBenposePdf })
   return { excel, pdf }
+}
+
+/** Runs only while the folio dialog is open. */
+export function useFolioDetails(request: FolioDetailsRequest | null) {
+  return useQuery({
+    queryKey: queryKeys.folioDetails(request?.pan ?? "", request?.date ?? ""),
+    queryFn: () => fetchFolioDetails(request!),
+    enabled: request !== null,
+  })
 }
 
 export function useCapitalAnalysis(request: CapitalAnalysisRequest | null) {
