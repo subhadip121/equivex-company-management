@@ -49,10 +49,10 @@ const RANGE_OPTIONS = [50, 100, 200, 500, 1000]
 
 /** Single-letter codes the endpoint expects, with readable names. */
 const DEPOSITORY_OPTIONS: Array<{ value: ShareHoldingDepository; label: string }> = [
-  { value: "A", label: "All" },
   { value: "N", label: "NSDL" },
   { value: "C", label: "CDSL" },
-  { value: "P", label: "Physical" },
+  { value: "P", label: "PHYSICAL" },
+  { value: "A", label: "ALL" },
 ]
 const PAGE_SIZE = 100
 

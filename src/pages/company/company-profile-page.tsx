@@ -42,8 +42,8 @@ export function CompanyProfilePage() {
   )
 }
 
-/** Identifier leads the list. */
-const FIRST_KEYS = ["id"]
+/** Identifier and internal keys hidden from display. */
+const EXCLUDED_KEYS = new Set(["id", "company_id", "companyid"])
 
 /** Record-keeping timestamps close it out. */
 const LAST_KEYS = [
@@ -102,14 +102,14 @@ function formatValue(key: string, value: unknown) {
 }
 
 function orderKeys(keys: string[]) {
-  const first = FIRST_KEYS.filter((key) => keys.includes(key))
-  const preferred = PREFERRED_ORDER.filter((key) => keys.includes(key))
-  const last = LAST_KEYS.filter((key) => keys.includes(key))
+  const visible = keys.filter((key) => !EXCLUDED_KEYS.has(key.toLowerCase()))
+  const preferred = PREFERRED_ORDER.filter((key) => visible.includes(key))
+  const last = LAST_KEYS.filter((key) => visible.includes(key))
 
-  const placed = new Set([...first, ...preferred, ...last])
-  const rest = keys.filter((key) => !placed.has(key)).sort()
+  const placed = new Set([...preferred, ...last])
+  const rest = visible.filter((key) => !placed.has(key)).sort()
 
-  return [...first, ...preferred, ...rest, ...last]
+  return [...preferred, ...rest, ...last]
 }
 
 function ProfileDetails({ profile }: { profile: CompanyProfile }) {

@@ -648,8 +648,8 @@ function toTopHundredPayload(request: TopHundredRequest) {
     page: 1,
     company_id: request.companyId,
     category: request.categories,
-    date_1: toYmdDate(request.date1),
-    date_2: toYmdDate(request.date2),
+    date_1: toYmdDate(request.date2),
+    date_2: toYmdDate(request.date1),
   }
 }
 
@@ -891,21 +891,19 @@ interface ShareHoldingRaw {
   }
 }
 
-/** `type` is P for the on-screen report and C for the exports. */
-function toShareHoldingPayload(request: ShareHoldingRequest, type: "P" | "C") {
+function toShareHoldingPayload(request: ShareHoldingRequest, isExport = false) {
   const payload: Record<string, unknown> = {
     company_id: request.companyId,
     record_dates: request.dates.map(toYmdDate),
     categories: request.categories,
     range: request.range,
     page_size: request.pageSize,
-    depository_type: request.depositoryType,
-    type,
+    type: request.depositoryType,
     keys: request.keys,
   }
 
   // Exports return the whole set, so they carry no page.
-  if (type === "P") payload.page = request.page
+  if (!isExport) payload.page = request.page
   return payload
 }
 
@@ -914,7 +912,7 @@ export async function fetchShareHolding(
 ): Promise<ShareHoldingReport> {
   const response = await http<ShareHoldingRaw>(endpoints.company.shareHolding, {
     method: "POST",
-    body: JSON.stringify(toShareHoldingPayload(request, "P")),
+    body: JSON.stringify(toShareHoldingPayload(request)),
   })
 
   const pagination = response.pagination ?? {}
@@ -945,14 +943,14 @@ export async function fetchShareHolding(
 export function downloadShareHoldingExcel(request: ShareHoldingRequest) {
   return download(endpoints.company.shareHoldingExcel, `share-holding-${request.dates[0]}.csv`, {
     method: "POST",
-    body: toShareHoldingPayload(request, "C"),
+    body: toShareHoldingPayload(request, true),
   })
 }
 
 export function downloadShareHoldingPdf(request: ShareHoldingRequest) {
   return download(endpoints.company.shareHoldingPdf, `share-holding-${request.dates[0]}.pdf`, {
     method: "POST",
-    body: toShareHoldingPayload(request, "C"),
+    body: toShareHoldingPayload(request, true),
   })
 }
 

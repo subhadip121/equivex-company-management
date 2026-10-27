@@ -18,6 +18,7 @@ export function AdminChangePasswordPage() {
         </CardHeader>
         <CardContent>
           <ChangePasswordForm
+            requireCurrentPassword={false}
             isPending={changePassword.isPending}
             onSubmit={(payload, reset) =>
               changePassword.mutate(payload, {

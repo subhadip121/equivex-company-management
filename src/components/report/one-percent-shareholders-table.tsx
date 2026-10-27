@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatNumber, formatPercent } from "@/lib/format"
-import type { OnePercentShareholdersReport } from "@/api/company-reports"
+import { MULTIPLE_FOLIO_LABEL, type OnePercentShareholdersReport } from "@/api/company-reports"
 
 export function OnePercentShareholdersSummary({
   report,
@@ -47,9 +47,11 @@ export function OnePercentShareholdersSummary({
 export function OnePercentShareholdersTable({
   report,
   startIndex = 1,
+  onOpenFolios,
 }: {
   report: OnePercentShareholdersReport
   startIndex?: number
+  onOpenFolios?: (pan: string) => void
 }) {
   return (
     <Table>
@@ -69,49 +71,65 @@ export function OnePercentShareholdersTable({
       </TableHeader>
 
       <TableBody>
-        {report.rows.map((row, index) => (
-          <TableRow key={`${row.folioId}-${row.pan}-${index}`}>
-            <TableCell className="text-center font-mono text-xs text-muted-foreground">
-              {startIndex + index}
-            </TableCell>
-            <TableCell className="font-medium whitespace-nowrap">
-              {row.userName || "—"}
-            </TableCell>
-            <TableCell className="whitespace-nowrap font-mono text-xs">
-              <span title={`Folio: ${row.folioId} | DP ID: ${row.dpId} | Client ID: ${row.clientId}`}>
-                {row.folioId || row.clientId || "—"}
-              </span>
-            </TableCell>
-            <TableCell className="whitespace-nowrap font-mono text-xs">
-              {row.pan || "—"}
-            </TableCell>
-            <TableCell className="max-w-xs whitespace-normal">
-              {row.categoryCode ? (
-                <Badge variant="outline" className="mr-1.5 font-mono text-[10px]">
-                  {row.categoryCode}
-                </Badge>
-              ) : null}
-              <span className="text-xs text-muted-foreground">
-                {row.categoryName || "—"}
-              </span>
-            </TableCell>
-            <TableCell className="text-right tabular-nums">
-              {formatNumber(row.previousHolding)}
-            </TableCell>
-            <TableCell className="text-right tabular-nums text-emerald-600 dark:text-emerald-400">
-              {row.buying > 0 ? `+${formatNumber(row.buying)}` : formatNumber(row.buying)}
-            </TableCell>
-            <TableCell className="text-right tabular-nums text-rose-600 dark:text-rose-400">
-              {row.selling > 0 ? `-${formatNumber(row.selling)}` : formatNumber(row.selling)}
-            </TableCell>
-            <TableCell className="text-right font-medium tabular-nums">
-              {formatNumber(row.presentHolding)}
-            </TableCell>
-            <TableCell className="text-right tabular-nums">
-              {formatPercent(row.presentHoldingPercentage)}
-            </TableCell>
-          </TableRow>
-        ))}
+        {report.rows.map((row, index) => {
+          const isMultipleFolio =
+            row.clientId.trim().toLowerCase() === MULTIPLE_FOLIO_LABEL.toLowerCase() ||
+            row.folioId.trim().toLowerCase() === MULTIPLE_FOLIO_LABEL.toLowerCase()
+
+          return (
+            <TableRow key={`${row.folioId}-${row.pan}-${index}`}>
+              <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                {startIndex + index}
+              </TableCell>
+              <TableCell className="font-medium whitespace-nowrap">
+                {row.userName || "—"}
+              </TableCell>
+              <TableCell className="whitespace-nowrap font-mono text-xs">
+                {isMultipleFolio ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenFolios?.(row.pan)}
+                    className="font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    {MULTIPLE_FOLIO_LABEL}
+                  </button>
+                ) : (
+                  <span title={`Folio: ${row.folioId} | DP ID: ${row.dpId} | Client ID: ${row.clientId}`}>
+                    {row.folioId || row.clientId || "—"}
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="whitespace-nowrap font-mono text-xs">
+                {row.pan || "—"}
+              </TableCell>
+              <TableCell className="max-w-xs whitespace-normal">
+                {row.categoryCode ? (
+                  <Badge variant="outline" className="mr-1.5 font-mono text-[10px]">
+                    {row.categoryCode}
+                  </Badge>
+                ) : null}
+                <span className="text-xs text-muted-foreground">
+                  {row.categoryName || "—"}
+                </span>
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatNumber(row.previousHolding)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums text-emerald-600 dark:text-emerald-400">
+                {row.buying > 0 ? `+${formatNumber(row.buying)}` : formatNumber(row.buying)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums text-rose-600 dark:text-rose-400">
+                {row.selling > 0 ? `-${formatNumber(row.selling)}` : formatNumber(row.selling)}
+              </TableCell>
+              <TableCell className="text-right font-medium tabular-nums">
+                {formatNumber(row.presentHolding)}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {formatPercent(row.presentHoldingPercentage)}
+              </TableCell>
+            </TableRow>
+          )
+        })}
       </TableBody>
 
       <TableFooter>

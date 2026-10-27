@@ -116,7 +116,18 @@ export function CompanyForm({
       return
     }
 
-    onSubmit({ ...form, company_isin: normalizeIsin(form.company_isin) })
+    const rawFace = form.face_value.trim()
+    const sanitizedFaceValue = rawFace.startsWith(".")
+      ? `0${rawFace}`
+      : rawFace.endsWith(".")
+        ? rawFace.slice(0, -1)
+        : rawFace
+
+    onSubmit({
+      ...form,
+      company_isin: normalizeIsin(form.company_isin),
+      face_value: sanitizedFaceValue,
+    })
   }
 
   return (

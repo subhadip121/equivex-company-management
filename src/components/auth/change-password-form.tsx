@@ -13,9 +13,11 @@ export const MIN_PASSWORD_LENGTH = 8
  */
 export function ChangePasswordForm({
   isPending,
+  requireCurrentPassword = true,
   onSubmit,
 }: {
   isPending: boolean
+  requireCurrentPassword?: boolean
   onSubmit: (payload: ChangePasswordPayload, reset: () => void) => void
 }) {
   const [oldPassword, setOldPassword] = useState("")
@@ -34,6 +36,10 @@ export function ChangePasswordForm({
     event.preventDefault()
     setError(null)
 
+    if (requireCurrentPassword && !oldPassword) {
+      setError("Please enter your current password.")
+      return
+    }
     if (newPassword.length < MIN_PASSWORD_LENGTH) {
       setError(`The new password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
       return
@@ -42,23 +48,30 @@ export function ChangePasswordForm({
       setError("The new passwords do not match.")
       return
     }
-    if (newPassword === oldPassword) {
+    if (requireCurrentPassword && newPassword === oldPassword) {
       setError("The new password must be different from the current one.")
       return
     }
 
-    onSubmit({ old_password: oldPassword, new_password: newPassword }, clear)
+    const payload: ChangePasswordPayload = {
+      new_password: newPassword,
+      ...(requireCurrentPassword ? { old_password: oldPassword } : {}),
+    }
+
+    onSubmit(payload, clear)
   }
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-      <Field
-        id="old_password"
-        label="Current password"
-        value={oldPassword}
-        onChange={setOldPassword}
-        autoComplete="current-password"
-      />
+      {requireCurrentPassword ? (
+        <Field
+          id="old_password"
+          label="Current password"
+          value={oldPassword}
+          onChange={setOldPassword}
+          autoComplete="current-password"
+        />
+      ) : null}
       <Field
         id="new_password"
         label="New password"

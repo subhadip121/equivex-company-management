@@ -24,8 +24,8 @@ export function TopHundredSummary({
   const tiles = [
     { label: "Share Capital", value: formatNumber(report.shareCapital) },
     { label: "Shareholders", value: formatNumber(report.count) },
-    { label: `As on ${formatDayMonthYear(date1)}`, value: formatNumber(report.totals.holding1) },
-    { label: `As on ${formatDayMonthYear(date2)}`, value: formatNumber(report.totals.holding2) },
+    { label: `As on ${formatDayMonthYear(date2)}`, value: formatNumber(report.totals.holding1) },
+    { label: `As on ${formatDayMonthYear(date1)}`, value: formatNumber(report.totals.holding2) },
   ]
 
   return (
@@ -62,13 +62,13 @@ export function TopHundredTable({
           <TableHead rowSpan={2}>Shareholder</TableHead>
           <TableHead rowSpan={2}>Category</TableHead>
           <TableHead colSpan={2} className="border-l text-center">
-            As on {formatDayMonthYear(date1)}
+            As on {formatDayMonthYear(date2)}
           </TableHead>
           <TableHead colSpan={2} className="border-l text-center">
             Traded
           </TableHead>
           <TableHead colSpan={2} className="border-l text-center">
-            As on {formatDayMonthYear(date2)}
+            As on {formatDayMonthYear(date1)}
           </TableHead>
         </TableRow>
         <TableRow>

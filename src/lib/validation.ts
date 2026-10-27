@@ -7,6 +7,7 @@
 const CIN_PATTERN = /^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const PHONE_PATTERN = /^[0-9]{10}$/
+const DECIMAL_PATTERN = /^(?:\d+(?:\.\d*)?|\.\d+)$/
 
 export function required(value: string, label: string) {
   return value.trim() ? null : `${label} is required.`
@@ -48,11 +49,11 @@ export function validateWholeNumber(value: string, label: string) {
   return null
 }
 
-/** Allows one decimal point, for values such as a face value of 2.50. */
+/** Allows any positive number (integer or decimal, e.g. 10, 2.50, 0.5). */
 export function validateDecimal(value: string, label: string) {
   const trimmed = value.trim()
   if (!trimmed) return `${label} is required.`
-  if (!/^\d+(\.\d{1,4})?$/.test(trimmed)) return `Enter ${label.toLowerCase()} as a number.`
+  if (!DECIMAL_PATTERN.test(trimmed)) return `Enter ${label.toLowerCase()} as a number.`
   if (Number(trimmed) <= 0) return `${label} must be greater than zero.`
   return null
 }
@@ -61,7 +62,7 @@ export function validateDecimal(value: string, label: string) {
 export function normalizeDecimal(value: string) {
   const cleaned = value.replace(/[^\d.]/g, "")
   const [whole, ...rest] = cleaned.split(".")
-  return rest.length === 0 ? whole : `${whole}.${rest.join("").slice(0, 4)}`
+  return rest.length === 0 ? whole : `${whole}.${rest.join("")}`
 }
 
 export function normalizeCin(value: string) {

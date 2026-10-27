@@ -3,6 +3,10 @@ import { FileDown, FileSpreadsheet, Filter, Loader2, TableIcon } from "lucide-re
 import { toast } from "sonner"
 import { PaginationBar } from "@/components/layout/pagination-bar"
 import {
+  FolioDetailsDialog,
+  type FolioTarget,
+} from "@/components/report/folio-details-dialog"
+import {
   OnePercentShareholdersSummary,
   OnePercentShareholdersTable,
 } from "@/components/report/one-percent-shareholders-table"
@@ -37,6 +41,7 @@ export function OnePercentShareholdersReport() {
 
   const [chosenDate, setChosenDate] = useState<string | null>(null)
   const [applied, setApplied] = useState<OnePercentShareholdersRequest | null>(null)
+  const [folioTarget, setFolioTarget] = useState<FolioTarget | null>(null)
 
   const date = chosenDate ?? dates.data?.[0]?.value ?? ""
 
@@ -176,7 +181,15 @@ export function OnePercentShareholdersReport() {
           </div>
         ) : report.data && report.data.rows.length > 0 ? (
           <>
-            <OnePercentShareholdersTable report={report.data} startIndex={startIndex} />
+            <OnePercentShareholdersTable
+              report={report.data}
+              startIndex={startIndex}
+              onOpenFolios={(pan) => {
+                if (applied) {
+                  setFolioTarget({ companyId, pan, date: applied.date })
+                }
+              }}
+            />
             <PaginationBar
               page={report.data.pagination.page}
               pageSize={report.data.pagination.pageSize}
@@ -193,6 +206,8 @@ export function OnePercentShareholdersReport() {
           />
         )}
       </Card>
+
+      <FolioDetailsDialog target={folioTarget} onClose={() => setFolioTarget(null)} />
     </>
   )
 }
