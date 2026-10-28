@@ -59,7 +59,7 @@ export function OnePercentShareholdersTable({
         <TableRow>
           <TableHead className="w-14 text-center">#</TableHead>
           <TableHead>Shareholder Name</TableHead>
-          <TableHead>Folio / Client ID</TableHead>
+          <TableHead>FolioNo/DPID-CLID</TableHead>
           <TableHead>PAN</TableHead>
           <TableHead>Category</TableHead>
           <TableHead className="text-right">Previous Holding</TableHead>
@@ -77,7 +77,7 @@ export function OnePercentShareholdersTable({
             row.folioId.trim().toLowerCase() === MULTIPLE_FOLIO_LABEL.toLowerCase()
 
           return (
-            <TableRow key={`${row.folioId}-${row.pan}-${index}`}>
+            <TableRow key={`${row.clientId || row.folioId}-${row.pan}-${index}`}>
               <TableCell className="text-center font-mono text-xs text-muted-foreground">
                 {startIndex + index}
               </TableCell>
@@ -94,8 +94,8 @@ export function OnePercentShareholdersTable({
                     {MULTIPLE_FOLIO_LABEL}
                   </button>
                 ) : (
-                  <span title={`Folio: ${row.folioId} | DP ID: ${row.dpId} | Client ID: ${row.clientId}`}>
-                    {row.folioId || row.clientId || "—"}
+                  <span title={row.clientId || row.folioId || undefined}>
+                    {row.clientId || row.folioId || "—"}
                   </span>
                 )}
               </TableCell>

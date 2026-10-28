@@ -65,7 +65,7 @@ export function TopShareholdersTable({
         <TableRow>
           <TableHead className="w-14 text-center">#</TableHead>
           <TableHead>Shareholder Name</TableHead>
-          <TableHead>Folio / Client ID</TableHead>
+          <TableHead>FolioNo/DPID-CLID</TableHead>
           <TableHead>PAN</TableHead>
           <TableHead>Category</TableHead>
           <TableHead className="text-right">Shares Held</TableHead>
@@ -75,7 +75,7 @@ export function TopShareholdersTable({
 
       <TableBody>
         {report.rows.map((row, index) => (
-          <TableRow key={`${row.folioId}-${row.pan}-${index}`}>
+          <TableRow key={`${row.clientId || row.folioId}-${row.pan}-${index}`}>
             <TableCell className="text-center font-mono text-xs text-muted-foreground">
               {startIndex + index}
             </TableCell>
@@ -83,8 +83,8 @@ export function TopShareholdersTable({
               {row.userName || "—"}
             </TableCell>
             <TableCell className="whitespace-nowrap font-mono text-xs">
-              <span title={`Folio: ${row.folioId} | DP ID: ${row.dpId} | Client ID: ${row.clientId}`}>
-                {row.folioId || row.clientId || "—"}
+              <span title={row.clientId || row.folioId || undefined}>
+                {row.clientId || row.folioId || "—"}
               </span>
             </TableCell>
             <TableCell className="whitespace-nowrap font-mono text-xs">
